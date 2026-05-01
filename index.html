@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10 Years of Excellence | Celebration</title>
+    <title>Dynamic Celebration Card</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
@@ -13,10 +13,21 @@
             --primary-gold: #d4af37;
             --dark-gold: #996515;
             --bg-dark: #050505;
+            --bg-light: #f8f9fa;
             --glass: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(255, 255, 255, 0.08);
             --text-main: #ffffff;
             --text-dim: rgba(255, 255, 255, 0.5);
+            --card-bg: rgba(255, 255, 255, 0.03);
+        }
+
+        [data-theme="light"] {
+            --bg-dark: #f0f2f5;
+            --text-main: #1a1a1a;
+            --text-dim: rgba(0, 0, 0, 0.6);
+            --glass: rgba(255, 255, 255, 0.8);
+            --glass-border: rgba(0, 0, 0, 0.1);
+            --card-bg: #ffffff;
         }
 
         * {
@@ -34,30 +45,20 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-            background: radial-gradient(circle at center, #111 0%, #050505 100%);
-        }
-
-        /* Animated Background Particles */
-        #bg-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-            pointer-events: none;
+            overflow-x: hidden;
+            transition: background-color 0.5s ease;
         }
 
         .bg-glow {
-            position: absolute;
+            position: fixed;
             width: 800px;
             height: 800px;
-            background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
             border-radius: 50%;
             z-index: 0;
             filter: blur(80px);
             animation: pulse 10s infinite alternate;
+            pointer-events: none;
         }
 
         @keyframes pulse {
@@ -78,81 +79,49 @@
 
         .celebration-container {
             width: 100%;
-            max-width: 650px;
-            padding: 4rem 3rem;
+            max-width: 600px;
+            padding: 3.5rem 2.5rem;
             text-align: center;
             background: var(--glass);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--glass-border);
-            border-radius: 50px;
-            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
-            animation: reveal 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+            border-radius: 40px;
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.2);
+            animation: reveal 1.2s cubic-bezier(0.19, 1, 0.22, 1);
             position: relative;
             overflow: hidden;
         }
 
         @keyframes reveal {
-            from { opacity: 0; transform: translateY(60px) scale(0.9); filter: blur(10px); }
-            to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+            from { opacity: 0; transform: translateY(40px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        /* Decorative corners */
-        .celebration-container::before, .celebration-container::after {
-            content: '';
-            position: absolute;
-            width: 100px;
-            height: 100px;
-            border: 1px solid var(--primary-gold);
-            opacity: 0.2;
-        }
-        .celebration-container::before { top: 20px; left: 20px; border-right: 0; border-bottom: 0; border-radius: 30px 0 0 0; }
-        .celebration-container::after { bottom: 20px; right: 20px; border-left: 0; border-top: 0; border-radius: 0 0 30px 0; }
-
-        .badge-container {
-            margin-bottom: 2.5rem;
-            position: relative;
-            display: inline-block;
-        }
-
-        .ten-year-badge {
-            width: 140px;
-            height: 140px;
-            background: linear-gradient(135deg, #fff, var(--primary-gold), var(--dark-gold));
+        .user-image-container {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3.5rem;
-            font-weight: 800;
-            color: #000;
-            box-shadow: 0 0 50px rgba(212, 175, 55, 0.4);
-            position: relative;
-            z-index: 2;
+            padding: 5px;
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+            display: none;
         }
 
-        .badge-label {
-            position: absolute;
-            bottom: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #fff;
-            color: #000;
-            padding: 4px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            white-space: nowrap;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        .user-image-container img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--card-bg);
         }
 
         h1 {
             font-family: 'Playfair Display', serif;
-            font-size: 4rem;
+            font-size: 3.5rem;
             margin-bottom: 0.5rem;
-            background: linear-gradient(to bottom, #fff 30%, var(--primary-gold) 100%);
+            background: linear-gradient(to bottom, var(--text-main) 30%, var(--primary-gold) 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -161,53 +130,21 @@
         }
 
         .recipient-name {
-            font-size: 2.2rem;
+            font-size: 2rem;
             font-weight: 600;
-            color: #fff;
-            margin-bottom: 2rem;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
             display: block;
-            letter-spacing: -0.5px;
         }
 
         .celebration-text {
-            font-size: 1.2rem;
-            line-height: 1.8;
+            font-size: 1.1rem;
+            line-height: 1.7;
             color: var(--text-dim);
-            margin-bottom: 3rem;
+            margin-bottom: 2.5rem;
             max-width: 450px;
             margin-left: auto;
             margin-right: auto;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-bottom: 3rem;
-            padding: 2rem 0;
-            position: relative;
-        }
-        
-        .stat-grid::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 10%; right: 10%;
-            height: 1px;
-            background: linear-gradient(to right, transparent, var(--glass-border), transparent);
-        }
-
-        .stat-item span:first-child {
-            display: block;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary-gold);
-        }
-
-        .stat-item span:last-child {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-dim);
         }
 
         .btn-group {
@@ -220,129 +157,170 @@
             background: var(--primary-gold);
             color: #000;
             border: none;
-            padding: 1.2rem 2.5rem;
+            padding: 1rem 2rem;
             border-radius: 100px;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s ease;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .action-btn:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 20px 40px rgba(212, 175, 55, 0.3);
-            background: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(212, 175, 55, 0.4);
         }
 
         .action-btn.secondary {
             background: transparent;
             border: 1px solid var(--glass-border);
-            color: #fff;
-        }
-        .action-btn.secondary:hover {
-            background: var(--glass);
-            border-color: var(--primary-gold);
+            color: var(--text-main);
         }
 
-        /* Generator Overlay */
+        /* Generator Section */
         #generator {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: var(--bg-dark);
             z-index: 100;
             display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            overflow-y: auto;
             padding: 2rem;
-            text-align: center;
         }
 
-        .gen-card {
-            background: #111;
-            padding: 3rem;
+        .gen-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 2.5rem;
             border-radius: 30px;
             border: 1px solid var(--glass-border);
-            max-width: 400px;
-            width: 100%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
         }
 
-        input {
+        .input-group {
+            text-align: left;
+            margin-bottom: 1.2rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        input, textarea, select {
             width: 100%;
-            padding: 1rem;
-            background: #000;
+            padding: 0.8rem 1rem;
+            background: rgba(0,0,0,0.05);
             border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            color: #fff;
+            border-radius: 12px;
+            color: var(--text-main);
             font-family: inherit;
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
+            font-size: 1rem;
             outline: none;
+            transition: border-color 0.3s;
         }
-        input:focus { border-color: var(--primary-gold); }
 
-        /* Responsive */
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary-gold);
+        }
+
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
         @media (max-width: 600px) {
-            .celebration-container { padding: 3rem 1.5rem; border-radius: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; border: none; }
-            h1 { font-size: 3rem; }
-            .stat-grid { gap: 0.5rem; }
-            .stat-item span:first-child { font-size: 1.1rem; }
+            .celebration-container { padding: 2.5rem 1.5rem; border-radius: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; border: none; }
+            h1 { font-size: 2.5rem; }
+            .gen-container { padding: 1.5rem; }
         }
     </style>
 </head>
 <body>
-    <canvas id="bg-canvas"></canvas>
     <div class="bg-glow"></div>
     
+    <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">
+        <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="moonIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+
     <div id="generator">
-        <div class="gen-card">
-            <h2 style="margin-bottom: 1rem; font-family: 'Playfair Display'; font-size: 2rem; color: var(--primary-gold);">Create Card</h2>
-            <p style="color: var(--text-dim); margin-bottom: 2rem;">Enter the employee's name to generate their 10-year anniversary link.</p>
-            <input type="text" id="nameInput" placeholder="e.g. Dilip Sir">
-            <button class="action-btn" style="width: 100%;" onclick="generateLink()">Copy Link</button>
-            <p id="copyStatus" style="margin-top: 1rem; font-size: 0.8rem; color: #4ade80; opacity: 0; transition: 0.3s;"></p>
+        <div class="gen-container">
+            <h2 style="margin-bottom: 1.5rem; font-family: 'Playfair Display'; font-size: 2rem; color: var(--primary-gold); text-align: center;">Create Your Card</h2>
+            
+            <div class="input-group">
+                <label>Recipient Name</label>
+                <input type="text" id="nameInput" placeholder="e.g. Dilip Sir">
+            </div>
+
+            <div class="input-group">
+                <label>Message Type</label>
+                <select id="typeInput">
+                    <option value="Congratulations">Congratulations</option>
+                    <option value="Happy Birthday">Happy Birthday</option>
+                    <option value="Best Wishes">Best Wishes</option>
+                    <option value="Thank You">Thank You</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Image URL (Optional)</label>
+                <input type="text" id="imgInput" placeholder="https://example.com/photo.jpg">
+            </div>
+
+            <div class="input-group">
+                <label>Custom Description</label>
+                <textarea id="descInput" rows="3" placeholder="Write a heartfelt message..."></textarea>
+            </div>
+
+            <div class="input-group">
+                <label>Theme Preference</label>
+                <select id="themeInput">
+                    <option value="dark">Dark Theme</option>
+                    <option value="light">Light Theme</option>
+                </select>
+            </div>
+
+            <button class="action-btn" style="width: 100%; justify-content: center; margin-top: 1rem;" onclick="generateLink()">Generate & Copy Link</button>
+            <p id="copyStatus" style="margin-top: 1rem; font-size: 0.8rem; color: #4ade80; opacity: 0; transition: 0.3s; text-align: center;"></p>
         </div>
     </div>
 
     <main class="celebration-wrapper" id="mainContent">
         <div class="celebration-container">
-            <div class="badge-container">
-                <div class="ten-year-badge">10</div>
-                <div class="badge-label">Years</div>
+            <div class="user-image-container" id="userImgContainer">
+                <img src="" alt="User Image" id="userImg">
             </div>
 
-            <h1>Congratulations</h1>
-            <span class="recipient-name" id="userName">Our Valued Team Member</span>
+            <h1 id="cardHeading">Congratulations</h1>
+            <span class="recipient-name" id="userName">Our Valued Member</span>
             
-            <p class="celebration-text">A decade of remarkable achievements. Your journey with us has been nothing short of inspiring. Thank you for your unwavering commitment and excellence.</p>
-
-            <div class="stat-grid">
-                <div class="stat-item">
-                    <span>3,650</span>
-                    <span>Days</span>
-                </div>
-                <div class="stat-item">
-                    <span>120</span>
-                    <span>Months</span>
-                </div>
-                <div class="stat-item">
-                    <span>Infinite</span>
-                    <span>Impact</span>
-                </div>
-            </div>
+            <p class="celebration-text" id="cardDesc">A remarkable achievement. Your journey has been nothing short of inspiring. Thank you for your unwavering commitment and excellence.</p>
 
             <div class="btn-group">
                 <button class="action-btn" onclick="celebrateAgain()">
                     <span>Celebrate</span>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4Z"></path></svg>
                 </button>
-                <button class="action-btn secondary" onclick="toggleFullScreen()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                <button class="action-btn secondary" onclick="location.href='index.html'">
+                    <span>New Card</span>
                 </button>
             </div>
         </div>
@@ -351,28 +329,75 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const name = urlParams.get('name');
+        const type = urlParams.get('type') || 'Congratulations';
+        const desc = urlParams.get('desc');
+        const img = urlParams.get('img');
+        const theme = urlParams.get('theme') || 'dark';
+
+        // Apply Theme
+        function applyTheme(t) {
+            document.documentElement.setAttribute('data-theme', t);
+            const sun = document.getElementById('sunIcon');
+            const moon = document.getElementById('moonIcon');
+            if (t === 'light') {
+                sun.style.display = 'block';
+                moon.style.display = 'none';
+            } else {
+                sun.style.display = 'none';
+                moon.style.display = 'block';
+            }
+        }
+        applyTheme(theme);
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            applyTheme(next);
+        }
 
         if (!name) {
-            document.getElementById('generator').style.display = 'flex';
-            document.getElementById('mainContent').style.opacity = '0.1';
+            document.getElementById('generator').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('themeBtn').style.display = 'none';
         } else {
             document.getElementById('userName').textContent = name;
+            document.getElementById('cardHeading').textContent = type;
+            if (desc) document.getElementById('cardDesc').textContent = desc;
+            if (img) {
+                document.getElementById('userImg').src = img;
+                document.getElementById('userImgContainer').style.display = 'block';
+            }
         }
 
         function generateLink() {
-            const inputName = document.getElementById('nameInput').value;
-            if (!inputName) return;
+            const iName = document.getElementById('nameInput').value;
+            const iType = document.getElementById('typeInput').value;
+            const iImg = document.getElementById('imgInput').value;
+            const iDesc = document.getElementById('descInput').value;
+            const iTheme = document.getElementById('themeInput').value;
+
+            if (!iName) {
+                alert("Please enter a name");
+                return;
+            }
             
             const baseUrl = window.location.href.split('?')[0];
-            const fullUrl = `${baseUrl}?name=${encodeURIComponent(inputName)}`;
+            const params = new URLSearchParams();
+            params.set('name', iName);
+            params.set('type', iType);
+            if (iImg) params.set('img', iImg);
+            if (iDesc) params.set('desc', iDesc);
+            params.set('theme', iTheme);
+
+            const fullUrl = `${baseUrl}?${params.toString()}`;
             
             navigator.clipboard.writeText(fullUrl).then(() => {
                 const status = document.getElementById('copyStatus');
-                status.textContent = "Link copied to clipboard!";
+                status.textContent = "Link copied! Redirecting...";
                 status.style.opacity = '1';
                 setTimeout(() => {
                     window.location.href = fullUrl;
-                }, 1000);
+                }, 1200);
             });
         }
 
@@ -381,36 +406,12 @@
             const colors = ['#d4af37', '#ffffff', '#996515'];
 
             (function frame() {
-                confetti({
-                    particleCount: 3,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 },
-                    colors: colors
-                });
-                confetti({
-                    particleCount: 3,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 },
-                    colors: colors
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
+                confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+                confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+                if (Date.now() < end) requestAnimationFrame(frame);
             }());
         }
 
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
-        }
-
-        // Automatic celebration on load
         window.addEventListener('load', () => {
             if (name) {
                 setTimeout(() => {
@@ -420,29 +421,7 @@
                         origin: { y: 0.6 },
                         colors: ['#d4af37', '#ffffff', '#996515']
                     });
-                    
-                    const scalar = 2;
-                    const triangle = confetti.shapeFromPath({ path: 'M0 10 L5 0 L10 10z' });
-
-                    confetti({
-                        shapes: [triangle],
-                        particleCount: 40,
-                        spread: 70,
-                        origin: { y: 0.7 },
-                        colors: ['#d4af37'],
-                        scalar
-                    });
-                }, 1000);
-            }
-        });
-
-        // Mouse Parallax Effect
-        document.addEventListener('mousemove', (e) => {
-            const container = document.querySelector('.celebration-container');
-            const x = (window.innerWidth / 2 - e.pageX) / 40;
-            const y = (window.innerHeight / 2 - e.pageY) / 40;
-            if (container) {
-                container.style.transform = `rotateY(${x}deg) rotateX(${-y}deg)`;
+                }, 500);
             }
         });
     </script>
