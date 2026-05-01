@@ -42,12 +42,44 @@ function toggleTheme() {
 // Celebration (Confetti)
 function celebrateAgain() {
     if (typeof confetti === 'undefined') return;
-    const end = Date.now() + (1 * 1000); // Reduced duration for repeated calls
-    const colors = ['#d4af37', '#ffffff', '#996515'];
+    const end = Date.now() + (2 * 1000);
+    const colors = ['#d4af37', '#ffffff', '#996515', '#f4d03f', '#ffffff'];
 
     (function frame() {
-        confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
-        confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+        // Left side explosion
+        confetti({
+            particleCount: 4,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0 },
+            colors: colors,
+            scalar: 1.2,
+            drift: 0.5
+        });
+        
+        // Right side explosion
+        confetti({
+            particleCount: 4,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1 },
+            colors: colors,
+            scalar: 1.2,
+            drift: -0.5
+        });
+
+        // Center burst occasionally
+        if (Math.random() > 0.8) {
+            confetti({
+                particleCount: 15,
+                spread: 100,
+                origin: { y: 0.7 },
+                colors: colors,
+                shapes: ['circle', 'square'],
+                gravity: 1.2
+            });
+        }
+
         if (Date.now() < end) requestAnimationFrame(frame);
     }());
 }
@@ -141,10 +173,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('userImgContainer')) document.getElementById('userImgContainer').style.display = 'block';
         }
 
+        // Big Initial Celebration
+        setTimeout(() => {
+            celebrateAgain();
+            // Extra big burst for the start
+            confetti({
+                particleCount: 150,
+                spread: 100,
+                origin: { y: 0.6 },
+                colors: ['#d4af37', '#ffffff', '#996515']
+            });
+        }, 500);
+
         // Auto Celebrate Loop
         setInterval(() => {
             celebrateAgain();
-        }, 2000); // Trigger every 2 seconds
+        }, 4000); // Trigger every 4 seconds
 
         // Mouse Parallax
         document.addEventListener('mousemove', (e) => {
@@ -158,10 +202,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Generator Logic
-    window.generateLink = function() {
+    window.generateLink = async function() {
         const iName = document.getElementById('nameInput')?.value;
         const iType = document.getElementById('typeInput')?.value;
         const iImg = document.getElementById('imgInput')?.value;
+        const iFile = document.getElementById('fileInput')?.files[0];
         const iDesc = document.getElementById('descInput')?.value;
         const iTheme = document.getElementById('themeInput')?.value;
 
@@ -170,24 +215,56 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        let finalImg = iImg || "";
+
+        // Handle File Upload (Base64)
+        if (iFile) {
+            try {
+                finalImg = await fileToBase64(iFile);
+            } catch (err) {
+                console.error("Image processing error:", err);
+                alert("Error processing image file.");
+                return;
+            }
+        }
+
         const cardData = {
             n: iName,
             m: iType,
-            i: iImg || "",
+            i: finalImg,
             d: iDesc || "",
             h: iTheme || "dark"
         };
 
         if (database) {
+            const btn = document.querySelector('.action-btn');
+            if (btn) {
+                btn.textContent = "Generating...";
+                btn.disabled = true;
+            }
+
             const newCardRef = database.ref('cards').push();
             newCardRef.set(cardData).then(() => {
                 const cardId = newCardRef.key;
                 window.location.href = `card.html?id=${cardId}`;
             }).catch((error) => {
                 alert("Error saving card: " + error.message);
+                if (btn) {
+                    btn.textContent = "Generate Card";
+                    btn.disabled = false;
+                }
             });
         } else {
             alert("Database not connected!");
         }
     };
+
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+    }
 });
