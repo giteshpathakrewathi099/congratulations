@@ -1,3 +1,21 @@
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDtMT6TFTeBvbXLw821bMDsCO3AuNtDDu4",
+  authDomain: "congratulations-cards.firebaseapp.com",
+  projectId: "congratulations-cards",
+  storageBucket: "congratulations-cards.firebasestorage.app",
+  messagingSenderId: "576706587851",
+  appId: "1:576706587851:web:7b28317863621b1d607f4e",
+  measurementId: "G-DW3ZW98WSB"
+};
+
+// Initialize Firebase
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const database = (typeof firebase !== 'undefined') ? firebase.database() : null;
+
 // Common Utility: Theme Management
 function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
@@ -36,53 +54,53 @@ function celebrateAgain() {
 // Initialization Logic
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
-    
-    // Short Keys: n=name, m=message(type), i=img, d=desc, h=theme
-    const data = {
-        name: urlParams.get('n') || urlParams.get('name'),
-        type: urlParams.get('m') || urlParams.get('type') || 'Congratulations',
-        img: urlParams.get('i') || urlParams.get('img'),
-        desc: urlParams.get('d') || urlParams.get('desc'),
-        theme: urlParams.get('h') || urlParams.get('theme') || 'dark'
+    const cardId = urlParams.get('id');
+
+    // Default messages and images
+    const defaults = {
+        'Happy Birthday': {
+            desc: 'Wishing you a day filled with happiness and a year filled with joy. Happy Birthday!',
+            img: 'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=400'
+        },
+        'Congratulations': {
+            desc: 'A remarkable achievement. Your journey has been nothing short of inspiring. Well done!',
+            img: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400'
+        },
+        'Best Wishes': {
+            desc: 'Sending you our best wishes for your new chapter. May success follow you always.',
+            img: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400'
+        },
+        'Thank You': {
+            desc: 'Your contribution has been invaluable. We truly appreciate everything you do.',
+            img: 'https://images.unsplash.com/photo-1516733968668-dbdce39c46ef?w=400'
+        }
     };
 
-    const { name, type, desc, img, theme } = data;
-
-    // Apply Theme
-    applyTheme(theme);
-
-    // Display Content
-    const userNameEl = document.getElementById('userName');
-    if (userNameEl) {
-        if (!name) {
-            if (window.location.pathname.includes('card.html')) {
+    // If we have an ID, fetch from Firebase
+    if (cardId && database) {
+        database.ref('cards/' + cardId).once('value').then((snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                renderCard(data);
+            } else {
                 window.location.href = 'index.html';
             }
-            return;
-        }
-        userNameEl.textContent = name;
-        if (document.getElementById('cardHeading')) document.getElementById('cardHeading').textContent = type;
-        
-        // Default messages and images
-        const defaults = {
-            'Happy Birthday': {
-                desc: 'Wishing you a day filled with happiness and a year filled with joy. Happy Birthday!',
-                img: 'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=400'
-            },
-            'Congratulations': {
-                desc: 'A remarkable achievement. Your journey has been nothing short of inspiring. Well done!',
-                img: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400'
-            },
-            'Best Wishes': {
-                desc: 'Sending you our best wishes for your new chapter. May success follow you always.',
-                img: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400'
-            },
-            'Thank You': {
-                desc: 'Your contribution has been invaluable. We truly appreciate everything you do.',
-                img: 'https://images.unsplash.com/photo-1516733968668-dbdce39c46ef?w=400'
-            }
-        };
+        }).catch((error) => {
+            console.error("Error fetching card:", error);
+            window.location.href = 'index.html';
+        });
+    } else if (window.location.pathname.includes('card.html')) {
+        // Only redirect if we are on card.html and no ID
+        window.location.href = 'index.html';
+    }
 
+    function renderCard(data) {
+        const { n: name, m: type, i: img, d: desc, h: theme } = data;
+        applyTheme(theme || 'dark');
+        
+        if (document.getElementById('userName')) document.getElementById('userName').textContent = name;
+        if (document.getElementById('cardHeading')) document.getElementById('cardHeading').textContent = type || 'Congratulations';
+        
         const config = defaults[type] || defaults['Congratulations'];
 
         if (document.getElementById('cardDesc')) {
@@ -98,9 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (typeof confetti !== 'undefined') {
                 confetti({
-                    particleCount: 150,
-                    spread: 100,
-                    origin: { y: 0.6 },
+                    particleCount: 150, spread: 100, origin: { y: 0.6 },
                     colors: ['#d4af37', '#ffffff', '#996515']
                 });
             }
@@ -129,14 +145,25 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please enter a name");
             return;
         }
-        
-        const params = new URLSearchParams();
-        params.set('n', iName);
-        params.set('m', iType);
-        if (iImg) params.set('i', iImg);
-        if (iDesc) params.set('d', iDesc);
-        if (iTheme && iTheme !== 'dark') params.set('h', iTheme);
 
-        window.location.href = `card.html?${params.toString()}`;
+        const cardData = {
+            n: iName,
+            m: iType,
+            i: iImg || "",
+            d: iDesc || "",
+            h: iTheme || "dark"
+        };
+
+        if (database) {
+            const newCardRef = database.ref('cards').push();
+            newCardRef.set(cardData).then(() => {
+                const cardId = newCardRef.key;
+                window.location.href = `card.html?id=${cardId}`;
+            }).catch((error) => {
+                alert("Error saving card: " + error.message);
+            });
+        } else {
+            alert("Database not connected!");
+        }
     };
 });
