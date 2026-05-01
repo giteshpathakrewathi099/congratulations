@@ -71,7 +71,7 @@ body {
 .gen-container,
 .celebration-container {
     width: 100%;
-    max-width: 600px;
+    max-width: 650px;
     padding: 3.5rem 2.5rem;
     text-align: center;
     background: var(--glass);
