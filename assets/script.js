@@ -6,7 +6,8 @@ const firebaseConfig = {
   storageBucket: "congratulations-cards.firebasestorage.app",
   messagingSenderId: "576706587851",
   appId: "1:576706587851:web:7b28317863621b1d607f4e",
-  measurementId: "G-DW3ZW98WSB"
+  measurementId: "G-DW3ZW98WSB",
+  databaseURL: "https://congratulations-cards-default-rtdb.firebaseio.com/"
 };
 
 // Initialize Firebase
