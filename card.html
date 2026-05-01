@@ -15,6 +15,7 @@
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
 <body>
@@ -40,9 +41,9 @@
     </button>
 
     <main class="celebration-wrapper">
-        <div class="celebration-container">
+        <div class="celebration-container" id="cardToDownload">
             <div class="user-image-container" id="userImgContainer">
-                <img src="" alt="User Image" id="userImg">
+                <img src="" alt="User Image" id="userImg" crossorigin="anonymous">
             </div>
 
             <h1 id="cardHeading">Congratulations</h1>
@@ -51,13 +52,13 @@
             <p class="celebration-text" id="cardDesc">A remarkable achievement. Your journey has been nothing short of
                 inspiring. Thank you for your unwavering commitment and excellence.</p>
 
-            <button class="action-btn" onclick="celebrateAgain()">
-                <span>Celebrate</span>
+            <button class="action-btn download-btn" onclick="downloadCard()">
+                <span>Download Card</span>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
-                    <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path>
-                    <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4Z"></path>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
             </button>
         </div>

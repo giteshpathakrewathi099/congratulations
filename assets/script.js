@@ -42,14 +42,42 @@ function toggleTheme() {
 // Celebration (Confetti)
 function celebrateAgain() {
     if (typeof confetti === 'undefined') return;
-    const end = Date.now() + (2 * 1000);
+    const end = Date.now() + (1 * 1000); // Reduced duration for repeated calls
     const colors = ['#d4af37', '#ffffff', '#996515'];
 
     (function frame() {
-        confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
-        confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+        confetti({ particleCount: 2, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+        confetti({ particleCount: 2, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
         if (Date.now() < end) requestAnimationFrame(frame);
     }());
+}
+
+// Download Card as PNG
+function downloadCard() {
+    const card = document.getElementById('cardToDownload');
+    const btn = document.querySelector('.download-btn');
+    
+    // Temporarily hide the download button so it's not in the image
+    if (btn) btn.style.visibility = 'hidden';
+
+    html2canvas(card, {
+        useCORS: true,
+        backgroundColor: null,
+        scale: 2, // Higher quality
+        logging: false
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `celebration-${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        // Show the button back
+        if (btn) btn.style.visibility = 'visible';
+    }).catch(err => {
+        console.error('Download failed:', err);
+        if (btn) btn.style.visibility = 'visible';
+        alert('Could not download image. Please try again.');
+    });
 }
 
 // Initialization Logic
@@ -113,15 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('userImgContainer')) document.getElementById('userImgContainer').style.display = 'block';
         }
 
-        // Auto Celebrate
-        setTimeout(() => {
-            if (typeof confetti !== 'undefined') {
-                confetti({
-                    particleCount: 150, spread: 100, origin: { y: 0.6 },
-                    colors: ['#d4af37', '#ffffff', '#996515']
-                });
-            }
-        }, 500);
+        // Auto Celebrate Loop
+        setInterval(() => {
+            celebrateAgain();
+        }, 2000); // Trigger every 2 seconds
 
         // Mouse Parallax
         document.addEventListener('mousemove', (e) => {
