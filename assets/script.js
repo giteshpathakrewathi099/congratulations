@@ -89,25 +89,49 @@ function downloadCard() {
     const card = document.getElementById('cardToDownload');
     const btn = document.querySelector('.download-btn');
     
-    // Temporarily hide the download button so it's not in the image
+    if (!card) return;
+
+    // Temporarily hide the download button
     if (btn) btn.style.visibility = 'hidden';
 
-    html2canvas(card, {
-        useCORS: true,
-        backgroundColor: null,
-        scale: 2, // Higher quality
-        logging: false
-    }).then(canvas => {
+    // Store current state
+    const originalTransform = card.style.transform;
+    
+    // Reset transform for a clean capture (removes 3D rotation blur)
+    card.style.transform = 'none';
+
+    // Use html-to-image for professional fidelity
+    htmlToImage.toPng(card, {
+        quality: 1.0,
+        pixelRatio: 3, 
+        backgroundColor: null, // Makes corners transparent
+        filter: (node) => {
+            // Exclude the download button from the capture
+            if (node.classList && node.classList.contains('download-btn')) {
+                return false;
+            }
+            return true;
+        },
+        style: {
+            transform: 'none',
+            margin: '0',
+            padding: '4.5rem 3.5rem' // Ensure padding is preserved
+        }
+    })
+    .then(dataUrl => {
         const link = document.createElement('a');
         link.download = `celebration-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
+        link.href = dataUrl;
         link.click();
         
-        // Show the button back
+        // Restore visibility and state
         if (btn) btn.style.visibility = 'visible';
-    }).catch(err => {
+        card.style.transform = originalTransform;
+    })
+    .catch(err => {
         console.error('Download failed:', err);
         if (btn) btn.style.visibility = 'visible';
+        card.style.transform = originalTransform;
         alert('Could not download image. Please try again.');
     });
 }
