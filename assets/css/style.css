@@ -356,18 +356,18 @@ h1 {
 
     .celebration-container,
     .gen-container {
-        padding: 2.5rem 1.5rem;
+              padding: 2.5rem 1.5rem;
         border-radius: 20px;
         width: 90%;
         margin: auto;
+    
     }
-}
 
-h1 {
-    font-size: 2.8rem;
-}
+    h1 {
+        font-size: 2.8rem;
+    }
 
-.recipient-name {
-    font-size: 1.8rem;
-}
+    .recipient-name {
+        font-size: 1.8rem;
+    }
 }
