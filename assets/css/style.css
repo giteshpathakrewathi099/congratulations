@@ -361,12 +361,13 @@ h1 {
         width: 90%;
         margin: auto;
     }
+}
 
-    h1 {
-        font-size: 2.8rem;
-    }
+h1 {
+    font-size: 2.8rem;
+}
 
-    .recipient-name {
-        font-size: 1.8rem;
-    }
+.recipient-name {
+    font-size: 1.8rem;
+}
 }
