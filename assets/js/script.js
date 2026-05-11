@@ -20,11 +20,12 @@ let confettiInstance = null;
 
 // Music Track URLs
 const musicTracks = {
-    'birthday': 'https://assets.mixkit.co/music/preview/mixkit-happy-birthday-87.mp3',
-    'wedding': 'https://assets.mixkit.co/music/preview/mixkit-wedding-bells-2.mp3',
-    'congrats': 'https://assets.mixkit.co/music/preview/mixkit-triumphant-party-439.mp3',
-    'thankyou': 'https://assets.mixkit.co/music/preview/mixkit-gentle-and-soft-acoustic-guitar-9.mp3',
-    'wishes': 'https://assets.mixkit.co/music/preview/mixkit-uplifting-piano-and-strings-melody-15.mp3'
+    'birthday': 'assets/image/mixkit-party-like-its-your-birthday-1115.mp3',
+    'wedding': 'assets/image/mixkit-wedding-harp-672.mp3',
+    'congrats': 'assets/image/mixkit-birthday-gift-791 (1).mp3',
+    'thankyou': 'assets/image/mixkit-smile-1076.mp3',
+    'wishes': 'assets/image/mixkit-classical-vibes-5-688.mp3',
+    'romantic': 'assets/image/mixkit-romantic-659.mp3'
 };
 
 // Common Utility: Theme Management
