@@ -10,6 +10,9 @@ const firebaseConfig = {
     databaseURL: "https://congratulations-cards-default-rtdb.firebaseio.com/"
 };
 
+//AOS animation only
+  AOS.init();
+  
 // Initialize Firebase
 if (typeof firebase !== 'undefined') {
     firebase.initializeApp(firebaseConfig);
@@ -285,7 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'Congratulations': { desc: 'A remarkable achievement...', img: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400' },
         'Best Wishes': { desc: 'Sending you our best wishes...', img: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=400' },
         'Thank You': { desc: 'Your contribution has been invaluable...', img: 'https://images.unsplash.com/photo-1516733968668-dbdce39c46ef?w=400' },
-        'Happy Wedding Anniversary': { desc: 'Wishing you both a lifetime of love...', img: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=400' }
+        'Happy Wedding Anniversary': { desc: 'Wishing you both a lifetime of love...', img: 'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?w=400' },
+        'Birthday Soon': { desc: 'Wishing you a day filled with happiness...', img: 'https://images.unsplash.com/photo-1464349153735-7db50ed83c84?w=400' }
     };
 
     if (cardId && database) {

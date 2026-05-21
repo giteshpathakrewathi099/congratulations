@@ -10,7 +10,9 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
         rel="stylesheet">
+    <link rel="icon" type="image/png" href="./assets/image/favicon.ico">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -80,7 +82,7 @@
     <audio id="bgMusic" loop></audio>
 
     <canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
-    <main class="celebration-wrapper">
+    <main class="celebration-wrapper" data-aos="fade-down" data-aos-duration="2000">
         <div class="celebration-container" id="cardToDownload">
             <div class="user-image-container" id="userImgContainer">
                 <img src="" alt="User Image" id="userImg" crossorigin="anonymous">
@@ -95,6 +97,7 @@
         </div>
     </main>
 
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
 

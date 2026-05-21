@@ -4,12 +4,14 @@
     --bg-dark: #050505;
     --bg-light: #f0f2f5;
     --glass: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border: #241400b8;
     --text-main: #ffffff;
     --text-dim: rgba(255, 255, 255, 0.5);
     --card-bg: #111111;
     --accent-cyan: #00bcd4;
     --input-bg: rgba(255, 255, 255, 0.05);
+    --scrollbar-thumb:#fff;
+    --scrollbar-back:inset 0 0 6px #000000;
 }
 
 [data-theme="light"] {
@@ -20,6 +22,8 @@
     --glass-border: rgba(0, 0, 0, 0.1);
     --card-bg: #ffffff;
     --input-bg: rgba(0, 0, 0, 0.05);
+    --scrollbar-thumb:#555555;
+      --scrollbar-back:inset 0 0 6px #e9e2d1;
 }
 
 * {
@@ -40,24 +44,29 @@ body {
     justify-content: center;
     overflow-x: hidden;
     transition: background-color 0.4s ease, color 0.4s ease;
-    background: radial-gradient(circle at center, #1a1a1a 0%, #050505 100%);
+    background: radial-gradient(circle at center, #241400b8 0%, #050505 100%);
 }
 
 [data-theme="light"] body {
-    background: radial-gradient(circle at center, #ffffff 0%, #f0f2f5 100%);
+    background: radial-gradient(circle at center, #bd932a87 0%, #f0f2f5 100%);
 }
-
+   
 /* Container Styles */
+.celebration-wrapper {
+   padding:30px 20px;
+   width:100%;
+}
 .gen-container,
 .celebration-container {
     width: 100%;
-    max-width: 800px;
+    max-width: 600px;
+    margin: auto;
     padding: 4.5rem 3.5rem;
     text-align: center;
     background: var(--card-bg);
     backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
-    border: 1px solid var(--glass-border);
+    border: 2px solid var(--glass-border);
     border-radius: 50px;
     box-shadow: 0 40px 100px rgba(0, 0, 0, 0.2);
     animation: reveal 1s cubic-bezier(0.19, 1, 0.22, 1);
@@ -99,7 +108,7 @@ h2 {
 
 .input-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
     font-size: 0.85rem;
     color: var(--text-dim);
     font-weight: 600;
@@ -170,8 +179,8 @@ select option {
 
 /* Card View Specific */
 .user-image-container {
-    width: 140px;
-    height: 140px;
+    width: 245px;
+    height: 245px;
     margin: 0 auto 2.5rem;
     border-radius: 50%;
     padding: 6px;
@@ -208,14 +217,15 @@ h1 {
     display: block;
 }
 
+
 .celebration-text {
     font-size: 1.1rem;
     line-height: 1.7;
     color: var(--text-dim);
     margin-bottom: 2.5rem;
-    max-width: 480px;
     margin-left: auto;
     margin-right: auto;
+    max-width: 800px;
 }
 
 /* Buttons and Controls */
@@ -352,15 +362,37 @@ h1 {
     cursor: pointer;
 }
 
-@media (max-width: 600px) {
 
+/* scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: var(--scrollbar-back);
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  -webkit-border-radius: 10px;
+  border-radius: 10px;
+  background: var(--scrollbar-thumb);
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+  background: var(--scrollbar-thumb);
+}
+
+
+@media (max-width: 667px) {
     .celebration-container,
     .gen-container {
-              padding: 2.5rem 1.5rem;
+        padding: 2.5rem 1.5rem;
         border-radius: 20px;
-        width: 90%;
+        width: 100%;
         margin: auto;
-    
     }
 
     h1 {

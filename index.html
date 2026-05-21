@@ -7,10 +7,14 @@
     <title>Create Your Celebration Card</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./assets/image/favicon.ico">
     <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -20,8 +24,8 @@
 
     <div class="controls-container">
         <button class="control-btn theme-toggle" onclick="toggleTheme()" id="themeBtn">
-            <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                style="display:none;">
+            <svg id="sunIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" style="display:none;">
                 <circle cx="12" cy="12" r="5" />
                 <line x1="12" y1="1" x2="12" y2="3" />
                 <line x1="12" y1="21" x2="12" y2="23" />
@@ -39,7 +43,7 @@
         </button>
     </div>
 
-    <div class="gen-container">
+    <div class="gen-container" data-aos="fade-up" data-aos-duration="2500">
         <h2>Create Your Card</h2>
 
         <div class="input-group">
@@ -52,6 +56,7 @@
             <select id="typeInput">
                 <option value="Congratulations">Congratulations</option>
                 <option value="Happy Birthday">Happy Birthday</option>
+                <option value="Birthday Soon">Birthday Soon</option>
                 <option value="Best Wishes">Best Wishes</option>
                 <option value="Thank You">Thank You</option>
                 <option value="Happy Wedding Anniversary">Happy Wedding Anniversary</option>
@@ -61,7 +66,7 @@
         <div class="input-group">
             <label>Image (URL or Upload)</label>
             <div class="combined-input">
-                <input type="text" id="imgInput" placeholder="Paste URL or click upload -->">
+                <input type="text" id="imgInput" placeholder="Paste URL or click upload ">
                 <label for="fileInput" class="upload-icon-btn">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -71,7 +76,8 @@
                     <input type="file" id="fileInput" accept="image/*" style="display: none;">
                 </label>
             </div>
-            <small id="fileNameDisplay" style="display: none; margin-top: 8px; color: var(--primary-gold); font-weight: 600;"></small>
+            <small id="fileNameDisplay"
+                style="display: none; margin-top: 8px; color: var(--primary-gold); font-weight: 600;"></small>
         </div>
 
         <div class="input-group">
@@ -102,7 +108,7 @@
 
         <button class="action-btn" onclick="generateLink()">Generate Card</button>
     </div>
-
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
 
