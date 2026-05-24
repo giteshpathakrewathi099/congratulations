@@ -8,14 +8,16 @@
     --text-main: #ffffff;
     --text-dim: rgba(255, 255, 255, 0.5);
     --card-bg: #111111;
+    --heading-accent: var(--primary-gold);
     --accent-cyan: #00bcd4;
     --input-bg: rgba(255, 255, 255, 0.05);
     --scrollbar-thumb:#fff;
     --scrollbar-back:inset 0 0 6px #000000;
 }
 
+
 [data-theme="light"] {
-    --bg-dark: #f0f2f5;
+    --bg-dark: #ffffff;
     --text-main: #1a1a1a;
     --text-dim: rgba(0, 0, 0, 0.6);
     --glass: rgba(255, 255, 255, 0.8);
@@ -23,7 +25,7 @@
     --card-bg: #ffffff;
     --input-bg: rgba(0, 0, 0, 0.05);
     --scrollbar-thumb:#555555;
-      --scrollbar-back:inset 0 0 6px #e9e2d1;
+    --scrollbar-back:inset 0 0 6px #e9e2d1;
 }
 
 * {
@@ -32,6 +34,7 @@
     box-sizing: border-box;
     -webkit-font-smoothing: antialiased;
 }
+
 
 body {
     font-family: 'Outfit', sans-serif;
@@ -44,7 +47,11 @@ body {
     justify-content: center;
     overflow-x: hidden;
     transition: background-color 0.4s ease, color 0.4s ease;
-    background: radial-gradient(circle at center, #241400b8 0%, #050505 100%);
+    background: radial-gradient(circle at center, #241400b8 0%, var(--bg-dark) 100%);
+}
+
+[data-theme="light"] body {
+    background: radial-gradient(circle at center, #bd932a87 0%, #ffffff 100%);
 }
 
 [data-theme="light"] body {
@@ -184,7 +191,7 @@ select option {
     margin: 0 auto 2.5rem;
     border-radius: 50%;
     padding: 6px;
-    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+    background: linear-gradient(135deg, var(--bg-dark), var(--primary-gold), var(--dark-gold));
     box-shadow: 0 15px 40px rgba(212, 175, 55, 0.4);
     display: none;
 }
@@ -194,14 +201,14 @@ select option {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
-    border: 4px solid var(--card-bg);
+    border: 4px solid var(--bg-dark);
 }
 
 h1 {
     font-family: 'Playfair Display', serif;
     font-size: 52px;
     margin-bottom: 0.5rem;
-    background: linear-gradient(to bottom, var(--text-main) 30%, var(--primary-gold) 100%);
+    background: linear-gradient(to bottom, var(--text-main) 30%, var(--heading-accent) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -269,6 +276,81 @@ h1 {
     transition: all 0.3s ease;
 }
 
+.color-theme-group {
+    position: relative;
+}
+
+.color-theme-flyout,
+.volume-flyout {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    width: 300px;
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px 18px;
+    backdrop-filter: blur(20px);
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+.color-theme-flyout.visible,
+.volume-flyout.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+}
+
+.color-picker-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.color-picker-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    color: #fff;
+    font-size: 0.95rem;
+}
+
+.color-picker-row input[type="color"] {
+    width: 48px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.save-theme-btn {
+    width: 100%;
+    margin-top: 14px;
+    border: none;
+    border-radius: 999px;
+    padding: 0.85rem 1rem;
+    background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+    color: #000;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.color-theme-status {
+    margin-top: 10px;
+    color: #d4af37;
+    font-size: 0.85rem;
+    min-height: 1rem;
+}
+
 /* Volume Flyout Design */
 .music-group {
     position: relative;
@@ -315,6 +397,7 @@ h1 {
 
 #volumeSlider {
     -webkit-appearance: none;
+    appearance: none;
     width: 100%;
     height: 3px;
     background: rgba(255, 255, 255, 0.2);
@@ -402,4 +485,41 @@ h1 {
     .recipient-name {
         font-size: 1.8rem;
     }
+}
+
+/* Theme icon switcher styles */
+.theme-switcher-group {
+  display: flex;
+  gap: 8px;
+  background: rgba(0,0,0,0.18);
+  border-radius: 14px;
+  padding: 4px 8px;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.theme-switch-btn {
+  background: none;
+  border: none;
+  outline: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  transition: background 0.18s, color 0.18s, opacity 0.18s;
+  font-size: 18px;
+  opacity: 0.75;
+}
+.theme-switch-btn.selected, .theme-switch-btn:hover, .theme-switch-btn:focus {
+  background: rgba(212, 175, 55, 0.18);
+  color: var(--primary-gold);
+  opacity: 1;
+}
+[data-theme="light"].theme-switch-btn {
+  
+     color: #fff;
+}
+.theme-switch-btn svg {
+  display: block;
 }
