@@ -253,9 +253,7 @@ h1 {
 }
 
 .controls-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
+    padding:20px 0px 0px 0px ;
     z-index: 2000;
     display: flex;
     gap: 12px;
@@ -263,9 +261,10 @@ h1 {
 }
 
 .control-btn {
-    background: var(--glass);
+      background: rgba(0, 0, 0, 0.18);
     border: 1px solid var(--glass-border);
-    color: var(--text-main);
+ color: #fff;
+  transition: background 0.18s, color 0.18s, opacity 0.18s;
     padding: 10px;
     border-radius: 50%;
     cursor: pointer;
@@ -477,7 +476,30 @@ h1 {
         width: 100%;
         margin: auto;
     }
+.color-theme-flyout,
+.volume-flyout {
+    position: absolute;
+    top: 55px;
 
+    left: 50%;
+  transform: translate(-50%, 0) !important;
+
+    width: 200px;
+    
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px 18px;
+    backdrop-filter: blur(20px);
+
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+.active {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
     h1 {
         font-size: 2.8rem;
     }
@@ -505,9 +527,9 @@ h1 {
   padding: 6px 8px;
   cursor: pointer;
   color: #fff;
+  transition: background 0.18s, color 0.18s, opacity 0.18s;
   display: flex;
   align-items: center;
-  transition: background 0.18s, color 0.18s, opacity 0.18s;
   font-size: 18px;
   opacity: 0.75;
 }
