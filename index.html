@@ -1,123 +1,490 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="hi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gp Card's</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="./assets/image/favicon.ico">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Engineered for Silence — 3D Exploded View</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    body {
+      overflow: hidden;
+      background: #0a0a0c;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: #e8e8ea;
+    }
+
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      cursor: pointer;
+    }
+
+    canvas { display: block; }
+
+    .ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .title {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: clamp(2rem, 6vw, 5rem);
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: rgba(255, 255, 255, 0.06);
+      white-space: nowrap;
+      user-select: none;
+      transition: opacity 0.6s ease;
+    }
+
+    .title.hidden { opacity: 0; }
+
+    .hint {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.35);
+      transition: opacity 0.4s ease;
+    }
+
+    .hint span {
+      display: inline-block;
+      padding: 0.55rem 1.1rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .hint.hidden { opacity: 0; }
+
+    .badge {
+      position: absolute;
+      top: 2rem;
+      left: 2rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.25);
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.65) 100%);
+      z-index: 1;
+    }
+  </style>
 </head>
-
 <body>
-<a href="./hello.html" style="color: #fff;">ANIMATION ONLY</a>
-    <div class="controls-container" style="display: none;">
-        <div class="theme-switcher-group" id="themeSwitcher">
-            <button class="theme-switch-btn" data-theme="light" aria-label="Light theme">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="5" />
-                    <line x1="12" y1="1" x2="12" y2="3" />
-                    <line x1="12" y1="21" x2="12" y2="23" />
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                    <line x1="1" y1="12" x2="3" y2="12" />
-                    <line x1="21" y1="12" x2="23" y2="12" />
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                </svg>
-            </button>
-            <button class="theme-switch-btn" data-theme="system" aria-label="System theme">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="4" y="4" width="16" height="12" rx="2" />
-                    <line x1="2" y1="20" x2="22" y2="20" />
-                </svg>
-            </button>
-            <button class="theme-switch-btn" data-theme="dark" aria-label="Dark theme">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-            </button>
-        </div>
-    </div>
+  <div id="canvas-wrap"></div>
+  <div class="vignette"></div>
+  <div class="ui">
+    <div class="badge">Exploded View</div>
+    <h1 class="title" id="title">Engineered for Silence</h1>
+    <p class="hint" id="hint"><span>Click to explore internals</span></p>
+  </div>
 
-    <div class="gen-container" style="display: none;" data-aos="fade-up" data-aos-duration="2500">
-        <h2>Create Your Card</h2>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
 
-        <div class="input-group">
-            <label>Recipient Name</label>
-            <input type="text" id="nameInput" placeholder="e.g. Raj Sir">
-        </div>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+    import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-        <div class="input-group">
-            <label>Message Type</label>
-            <select id="typeInput">
-                <option value="Congratulations">Congratulations</option>
-                <option value="Happy Birthday">Happy Birthday</option>
-                <option value="Birthday Soon">Birthday Soon</option>
-                <option value="Best Wishes">Best Wishes</option>
-                <option value="Thank You">Thank You</option>
-                <option value="Happy Wedding Anniversary">Happy Wedding Anniversary</option>
-            </select>
-        </div>
+    const wrap = document.getElementById("canvas-wrap");
+    const titleEl = document.getElementById("title");
+    const hintEl = document.getElementById("hint");
 
-        <div class="input-group">
-            <label>Image (URL or Upload)</label>
-            <div class="combined-input">
-                <input type="text" id="imgInput" placeholder="Paste URL or click upload ">
-                <label for="fileInput" class="upload-icon-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                    </svg>
-                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
-                </label>
-            </div>
-            <small id="fileNameDisplay"
-                style="display: none; margin-top: 8px; color: var(--primary-gold); font-weight: 600;"></small>
-        </div>
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    wrap.appendChild(renderer.domElement);
 
-        <div class="input-group">
-            <label>Custom Description (Optional)</label>
-            <textarea id="descInput" rows="3" placeholder="Write a heartfelt message..."></textarea>
-        </div>
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0c);
+    scene.fog = new THREE.FogExp2(0x0a0a0c, 0.035);
 
-        <div class="input-group">
-            <label>Default Theme</label>
-            <select id="themeInput">
-                <option value="dark">Dark Theme</option>
-                <option value="light">Light Theme</option>
-            </select>
-        </div>
+    const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0.15, 4.2);
 
-        <div class="input-group">
-            <label>Background Music</label>
-            <select id="musicInput">
-                <option value="none">No Music</option>
-                <option value="birthday">Birthday Celebration</option>
-                <option value="wedding">Romantic Wedding</option>
-                <option value="congrats">Grand Celebration</option>
-                <option value="thankyou">Soft Gratitude</option>
-                <option value="wishes">Best Wishes Melody</option>
-                <option value="romantic">Romantic Melody</option>
-            </select>
-        </div>
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.enablePan = false;
+    controls.minDistance = 2.8;
+    controls.maxDistance = 6;
+    controls.minPolarAngle = Math.PI * 0.25;
+    controls.maxPolarAngle = Math.PI * 0.75;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
 
-        <button class="action-btn" onclick="generateLink()">Generate Card</button>
-    </div>
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script src="assets/js/script.js"></script>
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+    const key = new THREE.DirectionalLight(0xffffff, 1.4);
+    key.position.set(3, 5, 4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x8899bb, 0.6);
+    rim.position.set(-4, 1, -2);
+    scene.add(rim);
+    const fill = new THREE.PointLight(0xffaa66, 0.35, 8);
+    fill.position.set(0, -1, 2);
+    scene.add(fill);
+
+    const headphone = new THREE.Group();
+    scene.add(headphone);
+
+    const mat = {
+      shell: new THREE.MeshPhysicalMaterial({
+        color: 0x111114,
+        roughness: 0.55,
+        metalness: 0.15,
+        clearcoat: 0.4,
+        clearcoatRoughness: 0.3,
+      }),
+      pad: new THREE.MeshStandardMaterial({
+        color: 0x1a1a1e,
+        roughness: 0.92,
+        metalness: 0.02,
+      }),
+      padInner: new THREE.MeshStandardMaterial({
+        color: 0x0d0d10,
+        roughness: 0.95,
+      }),
+      frame: new THREE.MeshStandardMaterial({
+        color: 0x18181c,
+        roughness: 0.45,
+        metalness: 0.35,
+      }),
+      copper: new THREE.MeshStandardMaterial({
+        color: 0xb87333,
+        roughness: 0.25,
+        metalness: 0.85,
+      }),
+      copperBright: new THREE.MeshStandardMaterial({
+        color: 0xd4924a,
+        roughness: 0.15,
+        metalness: 0.9,
+        emissive: 0x331a00,
+        emissiveIntensity: 0.15,
+      }),
+      pcb: new THREE.MeshStandardMaterial({
+        color: 0x1a4d2e,
+        roughness: 0.6,
+        metalness: 0.1,
+      }),
+      chip: new THREE.MeshStandardMaterial({
+        color: 0x111111,
+        roughness: 0.35,
+        metalness: 0.5,
+      }),
+      screw: new THREE.MeshStandardMaterial({
+        color: 0xc8c8cc,
+        roughness: 0.2,
+        metalness: 0.95,
+      }),
+      wire: new THREE.MeshStandardMaterial({
+        color: 0x8b5a2b,
+        roughness: 0.4,
+        metalness: 0.7,
+      }),
+      diaphragm: new THREE.MeshStandardMaterial({
+        color: 0x050508,
+        roughness: 0.8,
+        metalness: 0.1,
+      }),
+    };
+
+    const parts = [];
+
+    function registerPart(mesh, assembled, exploded) {
+      mesh.userData.assembled = assembled.clone();
+      mesh.userData.exploded = exploded.clone();
+      mesh.position.copy(assembled);
+      parts.push(mesh);
+      return mesh;
+    }
+
+    function makeHeadband() {
+      const g = new THREE.Group();
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-1.05, 0.55, 0),
+        new THREE.Vector3(-0.5, 0.95, 0),
+        new THREE.Vector3(0, 1.05, 0),
+        new THREE.Vector3(0.5, 0.95, 0),
+        new THREE.Vector3(1.05, 0.55, 0),
+      ]);
+      const tube = new THREE.TubeGeometry(curve, 64, 0.07, 16, false);
+      const band = new THREE.Mesh(tube, mat.shell);
+      band.castShadow = true;
+      g.add(band);
+
+      [-1.05, 1.05].forEach((x) => {
+        const hinge = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.09, 0.09, 0.12, 24),
+          mat.frame
+        );
+        hinge.rotation.z = Math.PI / 2;
+        hinge.position.set(x, 0.55, 0);
+        g.add(hinge);
+      });
+
+      registerPart(
+        g,
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(0, 0.35, 0)
+      );
+      headphone.add(g);
+    }
+
+    function makeEarSide(side) {
+      const sign = side === "left" ? -1 : 1;
+      const root = new THREE.Group();
+      root.position.x = sign * 1.05;
+
+      const outerShell = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.72, 0.72, 0.28, 48),
+        mat.shell
+      );
+      outerShell.rotation.z = Math.PI / 2;
+      outerShell.castShadow = true;
+      registerPart(
+        outerShell,
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(sign * 0.55, 0, 0)
+      );
+      root.add(outerShell);
+
+      const padOuter = new THREE.Mesh(
+        new THREE.TorusGeometry(0.58, 0.14, 20, 48),
+        mat.pad
+      );
+      padOuter.rotation.y = Math.PI / 2;
+      registerPart(
+        padOuter,
+        new THREE.Vector3(sign * 0.02, 0, 0),
+        new THREE.Vector3(sign * 0.38, 0, 0)
+      );
+      root.add(padOuter);
+
+      const padInner = new THREE.Mesh(
+        new THREE.CircleGeometry(0.44, 48),
+        mat.padInner
+      );
+      padInner.rotation.y = Math.PI / 2;
+      registerPart(
+        padInner,
+        new THREE.Vector3(sign * 0.04, 0, 0),
+        new THREE.Vector3(sign * 0.28, 0, 0)
+      );
+      root.add(padInner);
+
+      const ringFrame = new THREE.Mesh(
+        new THREE.TorusGeometry(0.42, 0.035, 12, 48),
+        mat.frame
+      );
+      ringFrame.rotation.y = Math.PI / 2;
+      registerPart(
+        ringFrame,
+        new THREE.Vector3(sign * 0.06, 0, 0),
+        new THREE.Vector3(sign * 0.2, sign * 0.08, 0)
+      );
+      root.add(ringFrame);
+
+      const driverGroup = new THREE.Group();
+      const driverBack = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.38, 0.38, 0.06, 48),
+        mat.frame
+      );
+      driverBack.rotation.z = Math.PI / 2;
+      driverGroup.add(driverBack);
+
+      const coil = new THREE.Mesh(
+        new THREE.TorusGeometry(0.22, 0.045, 16, 48),
+        mat.copperBright
+      );
+      coil.rotation.y = Math.PI / 2;
+      driverGroup.add(coil);
+
+      const coilInner = new THREE.Mesh(
+        new THREE.CircleGeometry(0.12, 32),
+        mat.copper
+      );
+      coilInner.rotation.y = Math.PI / 2;
+      driverGroup.add(coilInner);
+
+      const diaphragm = new THREE.Mesh(
+        new THREE.CircleGeometry(0.34, 48),
+        mat.diaphragm
+      );
+      diaphragm.rotation.y = Math.PI / 2;
+      diaphragm.position.x = sign * 0.02;
+      driverGroup.add(diaphragm);
+
+      registerPart(
+        driverGroup,
+        new THREE.Vector3(sign * 0.08, 0, 0),
+        new THREE.Vector3(sign * 0.05, sign * -0.12, sign * 0.15)
+      );
+      root.add(driverGroup);
+
+      const pcb = new THREE.Group();
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(0.35, 0.22, 0.025),
+        mat.pcb
+      );
+      pcb.add(board);
+      for (let i = 0; i < 6; i++) {
+        const chip = new THREE.Mesh(
+          new THREE.BoxGeometry(0.06, 0.04, 0.02),
+          mat.chip
+        );
+        chip.position.set(-0.1 + (i % 3) * 0.1, -0.04 + Math.floor(i / 3) * 0.08, 0.02);
+        pcb.add(chip);
+      }
+      pcb.rotation.y = Math.PI / 2;
+      registerPart(
+        pcb,
+        new THREE.Vector3(sign * 0.1, 0, sign * 0.05),
+        new THREE.Vector3(sign * 0.02, sign * 0.18, sign * 0.35)
+      );
+      root.add(pcb);
+
+      for (let i = 0; i < 3; i++) {
+        const screw = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.018, 0.018, 0.04, 12),
+          mat.screw
+        );
+        screw.rotation.z = Math.PI / 2;
+        screw.position.set(sign * 0.12, 0.15 - i * 0.12, 0.08);
+        registerPart(
+          screw,
+          screw.position.clone(),
+          new THREE.Vector3(sign * 0.08, 0.35 + i * 0.08, 0.25 + i * 0.05)
+        );
+        root.add(screw);
+      }
+
+      const wireCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(sign * 0.1, 0, 0.05),
+        new THREE.Vector3(sign * 0.05, 0.1, 0.15),
+        new THREE.Vector3(sign * 0.02, 0.05, 0.3),
+      ]);
+      const wire = new THREE.Mesh(
+        new THREE.TubeGeometry(wireCurve, 24, 0.008, 8, false),
+        mat.wire
+      );
+      registerPart(
+        wire,
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(sign * -0.05, sign * 0.1, sign * 0.12)
+      );
+      root.add(wire);
+
+      headphone.add(root);
+    }
+
+    makeHeadband();
+    makeEarSide("left");
+    makeEarSide("right");
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(20, 20),
+      new THREE.ShadowMaterial({ opacity: 0.25 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.85;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    let exploded = false;
+    let animating = false;
+    let progress = 0;
+    let targetProgress = 0;
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    function applyProgress(p) {
+      parts.forEach((part) => {
+        const a = part.userData.assembled;
+        const e = part.userData.exploded;
+        part.position.lerpVectors(a, e, p);
+      });
+    }
+
+    function setExploded(value) {
+      if (exploded === value || animating) return;
+      exploded = value;
+      targetProgress = value ? 1 : 0;
+      animating = true;
+      controls.autoRotate = !value;
+
+      titleEl.classList.toggle("hidden", value);
+      hintEl.innerHTML = value
+        ? "<span>Cursor hatao — wapas assemble hoga</span>"
+        : "<span>Click to explore internals</span>";
+    }
+
+    wrap.addEventListener("click", () => setExploded(!exploded));
+
+    wrap.addEventListener("mouseleave", () => {
+      if (exploded) setExploded(false);
+    });
+
+    document.addEventListener("touchstart", (e) => {
+      if (!wrap.contains(e.target) && exploded) setExploded(false);
+    }, { passive: true });
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (animating) {
+        const diff = targetProgress - progress;
+        progress += diff * 0.08;
+        if (Math.abs(diff) < 0.002) {
+          progress = targetProgress;
+          animating = false;
+        }
+        applyProgress(ease(progress));
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    applyProgress(0);
+    animate();
+  </script>
 </body>
-
 </html>
