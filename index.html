@@ -103,19 +103,106 @@
 
         <div class="input-group">
             <label>Background Music</label>
-            <select id="musicInput">
-                <option value="none">No Music</option>
-                <option value="birthday">Birthday Celebration</option>
-                <option value="wedding">Romantic Wedding</option>
-                <option value="congrats">Grand Celebration</option>
-                <option value="thankyou">Soft Gratitude</option>
-                <option value="wishes">Best Wishes Melody</option>
-                <option value="romantic">Romantic Melody</option>
-            </select>
+            <button type="button" id="musicInputBtn"
+                style="background: var(--input-bg); color: var(--text-main); border: 1px solid var(--glass-border); text-align: left; padding: 0.9rem 1.1rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer;"
+                onclick="openMusicSearchModal()">
+                <span id="musicInputDisplay">No Music</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
+            <input type="hidden" id="musicInput" value="none">
+            <input type="hidden" id="musicCustomUrl" value="">
+            <input type="hidden" id="musicStartTime" value="0">
+            <input type="hidden" id="musicDuration" value="15">
         </div>
 
         <button class="action-btn" onclick="generateLink()">Generate Card</button>
     </div>
+    <!-- Music Search Modal -->
+    <div id="musicSearchModal" class="music-modal-overlay" onclick="if(event.target === this) closeMusicSearchModal()">
+        <div class="music-modal">
+            <div class="music-modal-header">
+                <h3>Search Music</h3>
+                <button class="close-modal-btn" onclick="closeMusicSearchModal()">✕</button>
+            </div>
+            <div class="music-search-bar">
+                <input type="text" id="musicSearchInput" placeholder="Search for songs, artists..."
+                    onkeypress="if(event.key === 'Enter') searchItunesMusic()">
+                <button class="search-music-btn" onclick="searchItunesMusic()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="music-results-container" id="musicResultsContainer">
+                <div style="text-align: center; color: var(--text-dim); padding: 2rem;">Search for a song to add to your
+                    card</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Music Trim Modal -->
+    <div id="musicTrimModal" class="music-modal-overlay" onclick="if(event.target === this) closeMusicTrimModal()">
+        <div class="music-modal music-trim-modal">
+            <div class="music-modal-header">
+                <h3>Trim Music</h3>
+                <button class="close-modal-btn" onclick="closeMusicTrimModal()">✕</button>
+            </div>
+            <div class="trim-info">
+                <img id="trimAlbumArt" src="" alt="Album Art">
+                <div class="trim-info-text">
+                    <h4 id="trimSongTitle">Song Title</h4>
+                    <p id="trimArtistName">Artist</p>
+                </div>
+            </div>
+
+            <div class="smallarea">
+                <div class="instagram-trimmer-wrapper">
+                    <div class="duration-slider-wrapper" style="margin-top: 1.5rem;">
+                        <div class="instagram-trimmer-header" style="margin-bottom: 8px;">
+                            <span>Playback Duration</span>
+                            <span id="trimDurationDisplay" class="trim-time-badge">15s</span>
+                        </div>
+                        <input type="range" id="trimDurationSlider" class="instagram-duration-slider" min="1" max="60"
+                            value="15" step="1">
+                    </div>
+                    <div class="instagram-trimmer-header">
+                        <span class="trim-label">Select song start point</span>
+                        <span id="trimStartTimeDisplay" class="trim-time-badge">0:00</span>
+                    </div>
+                    <div class="instagram-trimmer-container">
+                        <div class="duration-circle-container">
+                            <div class="duration-circle-visual">
+                                <span id="durationCircleText">15</span>
+                            </div>
+                        </div>
+                        <div class="waveform-slider-container">
+                            <input type="range" id="trimStartSlider" class="instagram-slider" min="0" max="30" value="0"
+                                step="1">
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <div class="trim-preview-controls">
+                    <button class="play-preview-btn" id="trimPlayBtn" onclick="toggleTrimPreview()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg> Preview
+                    </button>
+                </div>
+
+                <button class="action-btn" style="margin-top: 1.5rem;" onclick="saveMusicSelection()">Confirm
+                    Selection</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script src="assets/js/script.js"></script>
 </body>
