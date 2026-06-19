@@ -32,6 +32,153 @@ const musicTracks = {
 };
 const DEFAULT_CARD_MUSIC = 'wishes';
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
+const MAX_VIDEO_SECONDS = 60;
+
+function getVideoFileDuration(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) {
+            reject(new Error('No video file'));
+            return;
+        }
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.muted = true;
+        const objectUrl = URL.createObjectURL(file);
+        const cleanup = () => URL.revokeObjectURL(objectUrl);
+        video.addEventListener('loadedmetadata', () => {
+            const duration = video.duration;
+            cleanup();
+            if (Number.isFinite(duration) && duration > 0) {
+                resolve(duration);
+            } else {
+                reject(new Error('Invalid video duration'));
+            }
+        }, { once: true });
+        video.addEventListener('error', () => {
+            cleanup();
+            reject(new Error('Could not read video'));
+        }, { once: true });
+        video.src = objectUrl;
+    });
+}
+
+function getCardVolumeStorageKey(cardId) {
+    return cardId ? `card-volume-state-${cardId}` : null;
+}
+
+function saveCardVolumeState() {
+    const key = getCardVolumeStorageKey(window.cardId);
+    if (!key) return;
+    const media = getActiveCardMedia();
+    const flyout = document.getElementById('volumeFlyout');
+    sessionStorage.setItem(key, JSON.stringify({
+        volume: media ? media.volume : (window.lastVolume ?? 0.5),
+        flyoutOpen: !!(flyout && flyout.classList.contains('visible'))
+    }));
+}
+
+function restoreCardVolumeState() {
+    const key = getCardVolumeStorageKey(window.cardId);
+    if (!key) return null;
+    try {
+        return JSON.parse(sessionStorage.getItem(key) || 'null');
+    } catch {
+        return null;
+    }
+}
+
+function applyCardVolumeState(savedState) {
+    if (!savedState) return 0.5;
+    const media = getActiveCardMedia();
+    const slider = document.getElementById('volumeSlider');
+    const levelDisplay = document.getElementById('volumeLevel');
+    const flyoutOn = document.getElementById('flyoutSpeakerOn');
+    const flyoutMute = document.getElementById('flyoutSpeakerMute');
+    const flyout = document.getElementById('volumeFlyout');
+    const volume = typeof savedState.volume === 'number' ? savedState.volume : 0.5;
+
+    if (media) {
+        media.volume = volume;
+        window.lastVolume = volume > 0 ? volume : (window.lastVolume || 0.5);
+    }
+    if (slider) slider.value = Math.round(volume * 100);
+    if (levelDisplay) levelDisplay.textContent = Math.round(volume * 100);
+    if (volume > 0) {
+        if (flyoutOn) flyoutOn.style.display = 'block';
+        if (flyoutMute) flyoutMute.style.display = 'none';
+    } else {
+        if (flyoutOn) flyoutOn.style.display = 'none';
+        if (flyoutMute) flyoutMute.style.display = 'block';
+    }
+    if (savedState.flyoutOpen && flyout) {
+        flyout.classList.add('visible');
+    }
+    syncMainSpeakerIcon();
+    return volume;
+}
+
+function applyVideoSyncedMusicTiming(media, onStart) {
+    if (!media || !window.cardVideoDuration) return;
+    const start = window.customMusicStartTime || 0;
+    const clipLength = window.customMusicClipLength;
+    const totalDuration = window.cardVideoDuration;
+    const playStartAt = performance.now();
+
+    media.loop = !clipLength;
+    if (onStart) onStart(media);
+    media.currentTime = start;
+    media.ontimeupdate = () => {
+        const elapsed = (performance.now() - playStartAt) / 1000;
+        if (elapsed >= totalDuration) {
+            media.pause();
+            media.loop = false;
+            media.currentTime = start;
+            syncMainSpeakerIcon();
+            return;
+        }
+        if (clipLength && media.currentTime >= start + clipLength) {
+            media.currentTime = start;
+        }
+        if (media.currentTime < start) {
+            media.currentTime = start;
+        }
+    };
+}
+
+function applyVideoDurationSync(videoEl, audioEl) {
+    if (!videoEl || !window.cardVideoDuration) return;
+    videoEl.loop = false;
+    videoEl.onended = () => {
+        if (audioEl && hasValidMediaSrc(audioEl)) {
+            audioEl.pause();
+        }
+        syncMainSpeakerIcon();
+    };
+}
+
+function resolveCardVideoDuration(videoEl, storedDuration) {
+    const parsed = parseFloat(storedDuration);
+    if (Number.isFinite(parsed) && parsed > 0) {
+        window.cardVideoDuration = parsed;
+        return Promise.resolve(parsed);
+    }
+    if (!videoEl) return Promise.resolve(undefined);
+    return new Promise((resolve) => {
+        const applyDuration = () => {
+            if (Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+                window.cardVideoDuration = videoEl.duration;
+                resolve(videoEl.duration);
+            } else {
+                resolve(undefined);
+            }
+        };
+        if (Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+            applyDuration();
+            return;
+        }
+        videoEl.addEventListener('loadedmetadata', applyDuration, { once: true });
+    });
+}
 
 function isVideoFile(file) {
     return !!(file && file.type && file.type.startsWith('video/'));
@@ -106,9 +253,29 @@ function hasValidMediaSrc(el) {
     return src.trim().length > 0;
 }
 
-window.onVideoFileSelected = function (input) {
+window.onVideoFileSelected = async function (input) {
     const file = input?.files?.[0];
     if (!file) return;
+
+    if (!isVideoFile(file)) {
+        alert("Please upload a valid video file");
+        window.clearVideoSelection();
+        return;
+    }
+
+    try {
+        const duration = await getVideoFileDuration(file);
+        if (duration > MAX_VIDEO_SECONDS) {
+            alert("Video must be 60 seconds or less. Please upload a shorter video.");
+            window.clearVideoSelection();
+            return;
+        }
+        window.selectedVideoDuration = duration;
+    } catch {
+        alert("Could not read video duration. Please try another file.");
+        window.clearVideoSelection();
+        return;
+    }
 
     const videoFileName = document.getElementById('videoFileName');
     const videoNameDisplay = document.getElementById('videoNameDisplay');
@@ -135,6 +302,7 @@ window.clearVideoSelection = function () {
         videoNameDisplay.textContent = '';
         videoNameDisplay.style.display = 'none';
     }
+    window.selectedVideoDuration = undefined;
 };
 
 window.clearImageSelection = function () {
@@ -194,6 +362,7 @@ window.generateLink = async function () {
 
         let finalImg = "";
         let finalVideo = "";
+        let videoDurationSec;
 
         if (iVideoFile) {
             if (!isVideoFile(iVideoFile)) {
@@ -202,6 +371,16 @@ window.generateLink = async function () {
             }
             if (iVideoFile.size > MAX_VIDEO_BYTES) {
                 alert("Video is too large. Please upload a video under 20MB.");
+                return;
+            }
+            try {
+                videoDurationSec = window.selectedVideoDuration || await getVideoFileDuration(iVideoFile);
+            } catch {
+                alert("Could not read video duration. Please try another file.");
+                return;
+            }
+            if (videoDurationSec > MAX_VIDEO_SECONDS) {
+                alert("Video must be 60 seconds or less. Please upload a shorter video.");
                 return;
             }
             finalVideo = await fileToBase64(iVideoFile);
@@ -238,6 +417,7 @@ window.generateLink = async function () {
             m: iType || 'Congratulations',
             i: finalImg,
             v: finalVideo || undefined,
+            vd: videoDurationSec !== undefined ? videoDurationSec : undefined,
             d: (iDesc && iDesc.trim()) ? iDesc.trim() : "",
             h: iThemePref || 'light',
             y: 'sparkle',
@@ -650,9 +830,13 @@ function startCardMediaPlayback() {
     if (!window.cardUsesVideoAudio && window.customMusicStartTime !== undefined) {
         media.currentTime = window.customMusicStartTime;
     }
+    if (window.cardVideoDuration && media === document.getElementById('bgMusic')) {
+        applyVideoSyncedMusicTiming(media);
+    }
 
     media.play().then(() => {
         syncMainSpeakerIcon();
+        saveCardVolumeState();
     }).catch(() => {
         setMainSpeakerIcon(false);
     });
@@ -671,6 +855,7 @@ window.toggleVolumeFlyout = function () {
     }
 
     if (flyout) flyout.classList.toggle('visible');
+    saveCardVolumeState();
 };
 
 window.updateVolume = function (val) {
@@ -695,6 +880,7 @@ window.updateVolume = function (val) {
         }
     }
     if (levelDisplay) levelDisplay.textContent = val;
+    saveCardVolumeState();
 };
 
 window.toggleMute = function () {
@@ -723,6 +909,7 @@ window.toggleMute = function () {
         if (media.paused) media.play().catch(e => { });
         syncMainSpeakerIcon();
     }
+    saveCardVolumeState();
 };
 
 // Automatic Start (Called when card data is ready)
@@ -732,20 +919,30 @@ function startCardEffects() {
 
     const video = document.getElementById('cardBgVideo');
     const audio = document.getElementById('bgMusic');
+    const savedVolumeState = restoreCardVolumeState();
 
     const tryPlayMedia = (media, onStart) => {
         if (!media || !hasValidMediaSrc(media)) return;
-        media.volume = 0.5;
-        if (onStart) onStart(media);
+        const restoredVolume = applyCardVolumeState(savedVolumeState);
+        media.volume = savedVolumeState ? restoredVolume : 0.5;
+        if (window.cardVideoDuration && media === audio) {
+            applyVideoSyncedMusicTiming(media, onStart);
+        } else if (onStart) {
+            onStart(media);
+        }
         media.play().then(() => {
             syncMainSpeakerIcon();
+            saveCardVolumeState();
         }).catch(() => {
             setMainSpeakerIcon(false);
             const playOnInteraction = () => {
                 if (!window.cardUsesVideoAudio && window.customMusicStartTime !== undefined) {
                     media.currentTime = window.customMusicStartTime;
                 }
-                media.play().then(() => syncMainSpeakerIcon()).catch(() => { });
+                media.play().then(() => {
+                    syncMainSpeakerIcon();
+                    saveCardVolumeState();
+                }).catch(() => { });
                 document.removeEventListener('click', playOnInteraction);
             };
             document.addEventListener('click', playOnInteraction);
@@ -753,17 +950,23 @@ function startCardEffects() {
     };
 
     if (window.cardUsesVideoAudio && video && hasValidMediaSrc(video)) {
+        const restoredVolume = applyCardVolumeState(savedVolumeState);
+        video.volume = savedVolumeState ? restoredVolume : 0.5;
         tryPlayMedia(video);
         return;
     }
 
     if (video && hasValidMediaSrc(video)) {
         video.muted = true;
+        applyVideoDurationSync(video, audio);
         video.play().catch(() => { });
     }
 
     if (audio && hasValidMediaSrc(audio)) {
         tryPlayMedia(audio, (el) => {
+            if (window.cardVideoDuration) {
+                return;
+            }
             if (window.customMusicStartTime !== undefined && window.customMusicDuration !== undefined) {
                 el.currentTime = window.customMusicStartTime;
                 el.ontimeupdate = () => {
@@ -778,6 +981,8 @@ function startCardEffects() {
                 };
             }
         });
+    } else if (savedVolumeState) {
+        applyCardVolumeState(savedVolumeState);
     }
 }
 
@@ -807,10 +1012,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (cardId && database) {
-        database.ref('cards/' + cardId).once('value').then((snapshot) => {
+        window.addEventListener('beforeunload', saveCardVolumeState);
+        database.ref('cards/' + cardId).once('value').then(async (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                renderCard(data);
+                await renderCard(data);
                 startCardEffects();
             } else {
                 window.location.href = 'index.html';
@@ -822,9 +1028,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'index.html';
     }
 
-    function renderCard(data) {
+    async function renderCard(data) {
         const savedCustomTheme = JSON.parse(localStorage.getItem('card-custom-theme') || 'null');
-        const { n: name, m: type, i: img, v: video, d: desc, y: design, s: music, h: themeMode, pc: pageColor, cc: cardColor, tc: textColor, sm: customMusic, sms: customMusicStart, smd: customMusicDuration } = data;
+        const { n: name, m: type, i: img, v: video, vd: videoDuration, d: desc, y: design, s: music, h: themeMode, pc: pageColor, cc: cardColor, tc: textColor, sm: customMusic, sms: customMusicStart, smd: customMusicDuration } = data;
         const resolvedThemeMode = getResolvedTheme(themeMode || savedCustomTheme?.themeMode || getStoredThemePreference());
         const resolvedPageColor = pageColor || savedCustomTheme?.pageColor;
         const resolvedCardColor = cardColor || savedCustomTheme?.cardColor;
@@ -832,6 +1038,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.cardUsesVideoAudio = false;
         window.cardHasExternalMusic = false;
+        window.cardVideoDuration = undefined;
 
         applyDesign(design || 'sparkle');
         applyTheme(resolvedThemeMode);
@@ -888,6 +1095,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasExternalMusic = music && music !== 'none' && music !== 'video';
 
         if (hasVideo && videoEl) {
+            await resolveCardVideoDuration(videoEl, videoDuration);
+
             if (hasExternalMusic && audio) {
                 videoEl.muted = true;
                 window.cardUsesVideoAudio = false;
@@ -895,14 +1104,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     audio.src = customMusic;
                     audio.load();
                     window.customMusicStartTime = customMusicStart !== undefined ? parseFloat(customMusicStart) : 0;
-                    window.customMusicDuration = customMusicDuration !== undefined ? parseFloat(customMusicDuration) : 15;
+                    window.customMusicClipLength = customMusicDuration !== undefined ? parseFloat(customMusicDuration) : 15;
+                    window.customMusicDuration = window.cardVideoDuration || window.customMusicClipLength;
                     window.cardHasExternalMusic = true;
                 } else if (musicTracks[music]) {
                     audio.src = musicTracks[music];
                     audio.load();
-                    window.customMusicStartTime = undefined;
-                    window.customMusicDuration = undefined;
+                    if (window.cardVideoDuration) {
+                        window.customMusicStartTime = 0;
+                        window.customMusicClipLength = undefined;
+                        window.customMusicDuration = window.cardVideoDuration;
+                    } else {
+                        window.customMusicStartTime = undefined;
+                        window.customMusicClipLength = undefined;
+                        window.customMusicDuration = undefined;
+                    }
                     window.cardHasExternalMusic = true;
+                }
+                if (window.cardVideoDuration) {
+                    applyVideoDurationSync(videoEl, audio);
                 }
             } else {
                 videoEl.muted = false;
