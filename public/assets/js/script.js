@@ -119,6 +119,13 @@ function applyCardVolumeState(savedState) {
     return volume;
 }
 
+function getMusicClipConfig() {
+    const start = window.customMusicStartTime ?? 0;
+    const clipLength = window.customMusicClipLength ?? window.customMusicDuration;
+    const totalDuration = window.cardVideoDuration ?? window.previewVideoDuration;
+    return { start, clipLength, totalDuration };
+}
+
 function applyMusicTiming(media, onStart) {
     if (!media) return;
     const { start, clipLength, totalDuration } = getMusicClipConfig();
@@ -323,6 +330,13 @@ window.onVideoFileSelected = async function (input) {
     }
 
     window.clearImageSelection();
+    updateVideoEditVisibility();
+    if (typeof window.initVideoDurationSlider === 'function') {
+        window.initVideoDurationSlider(window.selectedVideoDuration);
+    }
+    if (typeof window.updateLivePreview === 'function') {
+        window.updateLivePreview();
+    }
 };
 
 window.clearVideoSelection = function () {
@@ -337,6 +351,7 @@ window.clearVideoSelection = function () {
         videoNameDisplay.style.display = 'none';
     }
     window.selectedVideoDuration = undefined;
+    updateVideoEditVisibility();
 };
 
 window.clearImageSelection = function () {
@@ -403,11 +418,7 @@ function playCardMediaWhenReady(media, onStart) {
         const restoredVolume = applyCardVolumeState(savedVolumeState);
         media.volume = savedVolumeState ? restoredVolume : 0.5;
 
-        if (window.cardVideoDuration && media === document.getElementById('bgMusic')) {
-            applyVideoSyncedMusicTiming(media, onStart);
-        } else if (onStart) {
-            onStart(media);
-        }
+        applyMusicTiming(media, onStart);
 
         media.play().then(() => {
             syncMainSpeakerIcon();
@@ -415,9 +426,7 @@ function playCardMediaWhenReady(media, onStart) {
         }).catch(() => {
             syncMainSpeakerIcon();
             const playOnInteraction = () => {
-                if (!window.cardUsesVideoAudio && window.customMusicStartTime !== undefined) {
-                    media.currentTime = window.customMusicStartTime;
-                }
+                applyMusicTiming(media, null);
                 media.play().then(() => {
                     syncMainSpeakerIcon();
                     saveCardVolumeState();
@@ -438,23 +447,36 @@ function playCardMediaWhenReady(media, onStart) {
 
 window.generateLink = async function () {
     try {
-        const iName = document.getElementById('nameInput')?.value;
-        const iType = document.getElementById('typeInput')?.value;
+        const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+        
+        let iName = document.getElementById('nameInput')?.value || '';
+        let iType = document.getElementById('typeInput')?.value || 'Congratulations';
+        let iDesc = document.getElementById('descInput')?.value || '';
+        
+        // If "No Text" tab is selected, clear text fields
+        if (activeTab === '6') {
+            iName = '';
+            iType = 'Congratulations'; // default fallback
+            iDesc = '';
+        } else if (!iName || !iName.trim()) {
+            alert("Please enter a name");
+            return;
+        }
+
         const iImg = document.getElementById('imgInput')?.value;
         const iFile = document.getElementById('fileInput')?.files[0];
         const useVideo = hasActiveVideoSelection();
         const iVideoFile = useVideo ? document.getElementById('videoInput')?.files[0] : null;
-        const iDesc = document.getElementById('descInput')?.value;
-        const iThemePref = localStorage.getItem('card-theme') || document.getElementById('themeInput')?.value || 'light';
+        const iThemePref = document.getElementById('themeInput')?.value || 'dark';
+        const cardThemeDefaults = getCardThemeDefaults(iThemePref);
         const iMusic = document.getElementById('musicInput')?.value;
         const iMusicCustomUrl = document.getElementById('musicCustomUrl')?.value;
         const iMusicStartTime = document.getElementById('musicStartTime')?.value;
         const iMusicDuration = document.getElementById('musicDuration')?.value;
-
-        if (!iName || !iName.trim()) {
-            alert("Please enter a name");
-            return;
-        }
+        
+        const iDefaultMusic = document.getElementById('defaultMusicInput')?.value;
+        const videoStartInput = document.getElementById('videoStartInput')?.value;
+        const videoEndInput = document.getElementById('videoEndInput')?.value;
 
         if (iMusic === 'custom' && !iMusicCustomUrl) {
             alert("Please confirm your music selection");
@@ -509,24 +531,34 @@ window.generateLink = async function () {
         }
 
         let resolvedMusic;
-        if (finalVideo) {
-            resolvedMusic = (iMusic && iMusic !== 'none') ? iMusic : 'video';
+        if (activeTab === '3' || activeTab === '5' || activeTab === '6') {
+            if (iMusic === 'custom' && iMusicCustomUrl) {
+                resolvedMusic = 'custom';
+            } else if (iDefaultMusic && iDefaultMusic !== 'none') {
+                resolvedMusic = iDefaultMusic;
+            } else if (iMusic && iMusic !== 'none') {
+                resolvedMusic = iMusic;
+            } else {
+                resolvedMusic = getDefaultMusicForMessageType(iType || 'Congratulations');
+            }
+        } else if (activeTab === '4' && finalVideo) {
+            resolvedMusic = 'video';
         } else {
-            resolvedMusic = (!iMusic || iMusic === 'none')
-                ? getDefaultMusicForMessageType(iType || 'Congratulations')
-                : iMusic;
+            resolvedMusic = 'none';
         }
-        const computed = getComputedStyle(document.documentElement);
-        const computedPageColor = (computed.getPropertyValue('--bg-dark') || '').trim();
-        const computedCardColor = (computed.getPropertyValue('--card-bg') || '').trim();
-        const computedTextColor = (computed.getPropertyValue('--text-main') || '').trim();
+        
+        const computedPageColor = cardThemeDefaults.pageColor;
+        const computedCardColor = cardThemeDefaults.cardColor;
+        const computedTextColor = cardThemeDefaults.textColor;
 
         const cardData = {
             n: iName.trim(),
-            m: iType || 'Congratulations',
+            m: iType,
             i: finalImg,
             v: finalVideo || undefined,
             vd: videoDurationSec !== undefined ? videoDurationSec : undefined,
+            vst: videoStartInput ? parseFloat(videoStartInput) : undefined,
+            vet: videoEndInput ? parseFloat(videoEndInput) : undefined,
             d: (iDesc && iDesc.trim()) ? iDesc.trim() : "",
             h: iThemePref || 'light',
             y: 'sparkle',
@@ -555,12 +587,14 @@ window.generateLink = async function () {
     }
 };
 
+const UI_THEME_KEY = 'ui-theme';
+
 function getSystemTheme() {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 function getStoredThemePreference() {
-    return localStorage.getItem('card-theme') || 'dark';
+    return localStorage.getItem(UI_THEME_KEY) || localStorage.getItem('card-theme') || 'system';
 }
 
 function getResolvedTheme(themeMode) {
@@ -574,29 +608,29 @@ function getCurrentTheme() {
     return document.documentElement.getAttribute('data-theme') || getResolvedTheme(getStoredThemePreference());
 }
 
+function getCardThemeDefaults(themeMode) {
+    const mode = getResolvedTheme(themeMode || 'dark');
+    if (mode === 'light') {
+        return { pageColor: '#f0f2f5', cardColor: '#ffffff', textColor: '#000000' };
+    }
+    return { pageColor: '#050505', cardColor: '#111111', textColor: '#ffffff' };
+}
+
 function syncThemeButtons(themePreference) {
     const buttons = document.querySelectorAll('.theme-switch-btn');
     buttons.forEach((button) => {
         const isSelected = button.dataset.theme === themePreference;
         button.classList.toggle('selected', isSelected);
     });
-
-    const themeInput = document.getElementById('themeInput');
-    if (themeInput) {
-        themeInput.value = getResolvedTheme(themePreference);
-    }
 }
 
 function applyTheme(themePreference) {
-    const preference = themePreference || getStoredThemePreference() || 'dark';
+    const preference = themePreference || getStoredThemePreference() || 'system';
     const resolvedTheme = getResolvedTheme(preference);
 
     document.documentElement.setAttribute('data-theme', resolvedTheme);
-    localStorage.setItem('card-theme', preference);
+    localStorage.setItem(UI_THEME_KEY, preference);
     syncThemeButtons(preference);
-    // When applying a theme interactively, remove any inline page color override
-    // so the CSS [data-theme] rules take effect. applyCardTheme will re-apply
-    // a stored custom page color when rendering a saved card.
     document.documentElement.style.removeProperty('--bg-dark');
     if (document.body) {
         document.body.style.backgroundColor = '';
@@ -637,34 +671,66 @@ function getCssColorVar(name, fallback) {
 }
 
 function getDefaultThemeColors() {
-    return {
-        pageColor: getCssColorVar('--bg-dark', '#050505'),
-        cardColor: getCssColorVar('--card-bg', '#111111'),
-        textColor: getCssColorVar('--text-main', '#ffffff')
-    };
+    const themeInput = document.getElementById('themeInput');
+    const cardTheme = themeInput?.value || 'dark';
+    return getCardThemeDefaults(cardTheme);
 }
 
 function applyCardTheme({ pageColor, cardColor, textColor, themeMode } = {}) {
-    const defaults = getDefaultThemeColors();
-    const currentTheme = themeMode || getCurrentTheme() || 'dark';
-    applyTheme(currentTheme);
-    // Only override --bg-dark if user picked a custom color
-    if (pageColor && pageColor !== '' && pageColor !== '#050505' && pageColor !== '#ffffff') {
+    const resolvedTheme = getResolvedTheme(themeMode || document.getElementById('themeInput')?.value || 'dark');
+    const defaults = getCardThemeDefaults(resolvedTheme);
+    const finalCardColor = cardColor || defaults.cardColor;
+    const finalTextColor = textColor || defaults.textColor;
+    const isCardPage = !!document.getElementById('cardToDownload');
+
+    const previewCard = document.getElementById('livePreviewCard');
+    const downloadCard = document.getElementById('cardToDownload');
+    if (previewCard) previewCard.setAttribute('data-card-theme', resolvedTheme);
+    if (downloadCard) downloadCard.setAttribute('data-card-theme', resolvedTheme);
+
+    if (isCardPage && pageColor && pageColor !== '' && pageColor !== '#050505' && pageColor !== '#ffffff' && pageColor !== '#f0f2f5') {
         document.documentElement.style.setProperty('--bg-dark', pageColor);
         document.body.style.backgroundColor = pageColor;
         document.body.style.backgroundImage = 'none';
-    } else {
-        document.documentElement.style.removeProperty('--bg-dark');
-        document.body.style.backgroundColor = '';
-        document.body.style.backgroundImage = '';
+    } else if (isCardPage && pageColor) {
+        document.documentElement.style.setProperty('--bg-dark', pageColor);
+        document.body.style.backgroundColor = pageColor;
+        document.body.style.backgroundImage = 'none';
     }
-    document.documentElement.style.setProperty('--card-bg', cardColor || defaults.cardColor);
-    document.documentElement.style.setProperty('--text-main', textColor || defaults.textColor);
-    document.documentElement.style.setProperty('--text-dim', hexToRgba((textColor || defaults.textColor), 0.65));
-    document.documentElement.style.setProperty('--heading-accent', textColor || defaults.textColor);
+
+    if (previewCard) {
+        previewCard.setAttribute('data-card-theme', resolvedTheme);
+        previewCard.style.setProperty('--card-bg', finalCardColor, 'important');
+        previewCard.style.setProperty('--text-main', finalTextColor, 'important');
+        previewCard.style.setProperty('--text-dim', hexToRgba(finalTextColor, 0.65), 'important');
+        previewCard.style.setProperty('--heading-accent', resolvedTheme === 'light' ? finalTextColor : '#0486c2', 'important');
+        previewCard.style.setProperty('background-color', finalCardColor, 'important');
+        previewCard.style.setProperty('color', finalTextColor, 'important');
+    }
+    if (downloadCard) {
+        downloadCard.setAttribute('data-card-theme', resolvedTheme);
+        downloadCard.style.setProperty('--card-bg', finalCardColor, 'important');
+        downloadCard.style.setProperty('--text-main', finalTextColor, 'important');
+        downloadCard.style.setProperty('--text-dim', hexToRgba(finalTextColor, 0.65), 'important');
+        downloadCard.style.setProperty('--heading-accent', resolvedTheme === 'light' ? finalTextColor : '#0486c2', 'important');
+        downloadCard.style.setProperty('background-color', finalCardColor, 'important');
+        downloadCard.style.setProperty('color', finalTextColor, 'important');
+    }
     const status = document.getElementById('colorThemeStatus');
     if (status) status.textContent = '';
 }
+
+function applyPreviewCardTheme() {
+    const themeMode = document.getElementById('themeInput')?.value || 'dark';
+    const defaults = getCardThemeDefaults(themeMode);
+    applyCardTheme({
+        pageColor: defaults.pageColor,
+        cardColor: defaults.cardColor,
+        textColor: defaults.textColor,
+        themeMode
+    });
+}
+window.applyPreviewCardTheme = applyPreviewCardTheme;
 
 function refreshColorInputs(savedColors = {}) {
     const defaults = getDefaultThemeColors();
@@ -681,12 +747,14 @@ function previewColorTheme() {
     const textColor = document.getElementById('textColorInput')?.value;
     const cardColor = document.getElementById('cardColorInput')?.value;
     const pageColor = document.getElementById('pageColorInput')?.value;
+    const themeMode = document.getElementById('themeInput')?.value || 'dark';
+    const defaults = getCardThemeDefaults(themeMode);
 
     applyCardTheme({
-        pageColor,
-        cardColor,
-        textColor,
-        themeMode: localStorage.getItem('card-theme') || 'dark'
+        pageColor: pageColor || defaults.pageColor,
+        cardColor: cardColor || defaults.cardColor,
+        textColor: textColor || defaults.textColor,
+        themeMode
     });
 }
 
@@ -699,7 +767,7 @@ function saveCardTheme() {
     const textColor = document.getElementById('textColorInput')?.value;
     const cardColor = document.getElementById('cardColorInput')?.value;
     const pageColor = document.getElementById('pageColorInput')?.value;
-    const currentTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('card-theme') || 'dark';
+    const currentTheme = document.getElementById('cardToDownload')?.getAttribute('data-card-theme') || 'dark';
     const themeData = {
         pageColor,
         cardColor,
@@ -915,13 +983,16 @@ function syncMainSpeakerIcon() {
 
 function getActiveCardMedia() {
     const audio = document.getElementById('bgMusic');
-    const video = document.getElementById('cardBgVideo');
+    const video = document.getElementById('cardBgVideo') || document.getElementById('previewBgVideo');
 
     if (window.cardHasExternalMusic && hasValidMediaSrc(audio)) {
         return audio;
     }
     if (window.cardUsesVideoAudio && hasValidMediaSrc(video)) {
         return video;
+    }
+    if (window.isPreviewMode && hasValidMediaSrc(audio)) {
+        return audio;
     }
     if (hasValidMediaSrc(audio)) {
         return audio;
@@ -933,11 +1004,8 @@ function startCardMediaPlayback() {
     const media = getActiveCardMedia();
     if (!media) return;
 
-    if (!window.cardUsesVideoAudio && window.customMusicStartTime !== undefined) {
-        media.currentTime = window.customMusicStartTime;
-    }
-    if (window.cardVideoDuration && media === document.getElementById('bgMusic')) {
-        applyVideoSyncedMusicTiming(media);
+    if (media === document.getElementById('bgMusic')) {
+        applyMusicTiming(media, null);
     }
 
     media.play().then(() => {
@@ -981,7 +1049,10 @@ window.updateVolume = function (val) {
         } else {
             if (flyoutOn) flyoutOn.style.display = 'block';
             if (flyoutMute) flyoutMute.style.display = 'none';
-            if (media.paused) media.play().catch(e => { });
+            if (media.paused) {
+                if (media === document.getElementById('bgMusic')) applyMusicTiming(media, null);
+                media.play().catch(e => { });
+            }
             syncMainSpeakerIcon();
         }
     }
@@ -1012,7 +1083,10 @@ window.toggleMute = function () {
         if (document.getElementById('volumeLevel')) document.getElementById('volumeLevel').textContent = Math.round(targetVol * 100);
         if (flyoutOn) flyoutOn.style.display = 'block';
         if (flyoutMute) flyoutMute.style.display = 'none';
-        if (media.paused) media.play().catch(e => { });
+        if (media.paused) {
+            if (media === document.getElementById('bgMusic')) applyMusicTiming(media, null);
+            media.play().catch(e => { });
+        }
         syncMainSpeakerIcon();
     }
     saveCardVolumeState();
@@ -1024,8 +1098,13 @@ function startCardEffects() {
 
     applyCardVolumeState(restoreCardVolumeState());
 
-    confettiBomb();
-    setInterval(confettiBomb, 3000);
+    const cardMusic = window.cardData?.s;
+    const cardHasVideo = !!(window.cardData?.v && window.cardData.v.trim());
+    const cardHasMusic = cardMusic && cardMusic !== 'none';
+    if (cardHasVideo || cardHasMusic) {
+        confettiBomb();
+        setInterval(confettiBomb, 3000);
+    }
 
     const video = document.getElementById('cardBgVideo');
     const audio = document.getElementById('bgMusic');
@@ -1043,24 +1122,7 @@ function startCardEffects() {
     }
 
     if (audio && hasValidMediaSrc(audio)) {
-        playCardMediaWhenReady(audio, (el) => {
-            if (window.cardVideoDuration) {
-                return;
-            }
-            if (window.customMusicStartTime !== undefined && window.customMusicDuration !== undefined) {
-                el.currentTime = window.customMusicStartTime;
-                el.ontimeupdate = () => {
-                    const end = window.customMusicStartTime + window.customMusicDuration;
-                    if (el.currentTime >= end) {
-                        el.currentTime = window.customMusicStartTime;
-                        if (el.paused) el.play().catch(() => { });
-                    }
-                    if (el.currentTime < window.customMusicStartTime) {
-                        el.currentTime = window.customMusicStartTime;
-                    }
-                };
-            }
-        });
+        playCardMediaWhenReady(audio);
     }
 
     if (typeof AOS !== 'undefined') {
@@ -1120,9 +1182,10 @@ function runAppInitialization() {
     }
 
     async function renderCard(data) {
+        window.cardData = data;
         const savedCustomTheme = JSON.parse(localStorage.getItem('card-custom-theme') || 'null');
         const { n: name, m: type, i: img, v: video, vd: videoDuration, d: desc, y: design, s: music, h: themeMode, pc: pageColor, cc: cardColor, tc: textColor, sm: customMusic, sms: customMusicStart, smd: customMusicDuration } = data;
-        const resolvedThemeMode = getResolvedTheme(themeMode || savedCustomTheme?.themeMode || getStoredThemePreference());
+        const resolvedThemeMode = getResolvedTheme(themeMode || savedCustomTheme?.themeMode || 'dark');
         const resolvedPageColor = pageColor || savedCustomTheme?.pageColor;
         const resolvedCardColor = cardColor || savedCustomTheme?.cardColor;
         const resolvedTextColor = textColor || savedCustomTheme?.textColor;
@@ -1130,9 +1193,10 @@ function runAppInitialization() {
         window.cardUsesVideoAudio = false;
         window.cardHasExternalMusic = false;
         window.cardVideoDuration = undefined;
+        window.isPreviewMode = false;
 
         applyDesign(design || 'sparkle');
-        applyTheme(resolvedThemeMode);
+        applyTheme(getStoredThemePreference());
         applyCardTheme({ pageColor: resolvedPageColor, cardColor: resolvedCardColor, textColor: resolvedTextColor, themeMode: resolvedThemeMode });
         refreshColorInputs({ pageColor: resolvedPageColor, cardColor: resolvedCardColor, textColor: resolvedTextColor });
 
@@ -1146,6 +1210,7 @@ function runAppInitialization() {
 
         if (videoEl) {
             if (hasVideo) {
+                videoEl.crossOrigin = 'anonymous';
                 videoEl.src = video.trim();
                 videoEl.style.display = 'block';
             } else {
@@ -1231,24 +1296,28 @@ function runAppInitialization() {
                 applyCardVolumeState(restoreCardVolumeState());
             }
         } else if (audio) {
-            const resolvedMusic = (music && music !== 'none')
-                ? music
-                : getDefaultMusicForMessageType(type || 'Congratulations');
-
-            if (resolvedMusic === 'custom' && customMusic) {
-                audio.src = customMusic;
-                audio.load();
-                window.customMusicStartTime = customMusicStart !== undefined ? parseFloat(customMusicStart) : 0;
-                window.customMusicDuration = customMusicDuration !== undefined ? parseFloat(customMusicDuration) : 15;
-            } else if (musicTracks[resolvedMusic]) {
-                audio.src = musicTracks[resolvedMusic];
-                audio.load();
-                window.customMusicStartTime = undefined;
-                window.customMusicDuration = undefined;
-            }
-            if (hasValidMediaSrc(audio) && musicControlGroup) {
-                musicControlGroup.style.display = 'flex';
-                applyCardVolumeState(restoreCardVolumeState());
+            if (music && music !== 'none') {
+                if (music === 'custom' && customMusic) {
+                    audio.src = customMusic;
+                    audio.load();
+                    window.customMusicStartTime = customMusicStart !== undefined ? parseFloat(customMusicStart) : 0;
+                    window.customMusicClipLength = customMusicDuration !== undefined ? parseFloat(customMusicDuration) : 15;
+                    window.customMusicDuration = customMusicDuration !== undefined ? parseFloat(customMusicDuration) : 15;
+                    window.cardHasExternalMusic = true;
+                } else if (musicTracks[music]) {
+                    audio.src = musicTracks[music];
+                    audio.load();
+                    window.customMusicStartTime = undefined;
+                    window.customMusicDuration = undefined;
+                    window.cardHasExternalMusic = true;
+                }
+                if (hasValidMediaSrc(audio) && musicControlGroup) {
+                    musicControlGroup.style.display = 'flex';
+                    applyCardVolumeState(restoreCardVolumeState());
+                }
+            } else {
+                audio.removeAttribute('src');
+                audio.pause();
             }
         }
 
@@ -1924,4 +1993,762 @@ window.saveMusicSelection = function () {
     document.getElementById('musicTrimModal').classList.remove('active');
     const musicSearchModal = document.getElementById('musicSearchModal');
     if (musicSearchModal) musicSearchModal.classList.remove('active');
+
+    if (typeof window.syncPreviewMusic === 'function') {
+        window.syncPreviewMusic();
+    }
+    if (typeof window.updateLivePreview === 'function') {
+        window.updateLivePreview();
+    }
+};
+
+window.downloadCard = async function () {
+    if (!window.cardData) return;
+
+    const btn = document.getElementById('downloadCardBtn');
+    if (btn) btn.disabled = true;
+
+    const originalIcon = btn.innerHTML;
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-dashoffset="0"></circle></svg>`;
+    if (!document.getElementById('spinStyle')) {
+        const style = document.createElement('style');
+        style.id = 'spinStyle';
+        style.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; }`;
+        document.head.appendChild(style);
+    }
+
+    try {
+        const cardMusic = window.cardData.s;
+        const isVideoCard = !!(window.cardData.v && window.cardData.v.trim());
+        const isCustomMusic = cardMusic === 'custom';
+        const usesVideoAudio = isVideoCard && cardMusic === 'video';
+        const hasExternalMusic = cardMusic && cardMusic !== 'none' && cardMusic !== 'video';
+        const hasVideoDownload = isVideoCard || isCustomMusic || hasExternalMusic;
+
+        const controls = document.querySelector('.controls-container');
+        if (controls) controls.style.display = 'none';
+
+        const cardContainer = document.getElementById('cardToDownload');
+        const videoEl = document.getElementById('cardBgVideo');
+        const audioEl = document.getElementById('bgMusic');
+
+        if (!hasVideoDownload) {
+            const confettiCanvas = document.getElementById('confettiCanvas');
+            const confettiWasVisible = confettiCanvas ? confettiCanvas.style.visibility : '';
+            if (confettiCanvas) confettiCanvas.style.visibility = 'hidden';
+
+            if (typeof htmlToImage !== 'undefined') {
+                const dataUrl = await htmlToImage.toPng(cardContainer, {
+                    cacheBust: true,
+                    pixelRatio: 2,
+                    style: { transform: 'none', margin: '0' },
+                    filter: (node) => node.id !== 'cardBgVideo' && node.id !== 'confettiCanvas'
+                });
+                const link = document.createElement('a');
+                link.download = 'congratulations_card.png';
+                link.href = dataUrl;
+                link.click();
+            } else {
+                alert('Image export library not loaded.');
+            }
+            if (confettiCanvas) confettiCanvas.style.visibility = confettiWasVisible;
+            if (controls) controls.style.display = '';
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalIcon;
+            }
+        } else {
+            if (typeof htmlToImage === 'undefined') {
+                alert('Image export library not loaded.');
+                return;
+            }
+
+            let wasVideoVisible = false;
+            if (videoEl && videoEl.style.display !== 'none') {
+                wasVideoVisible = true;
+                videoEl.style.display = 'none';
+            }
+
+            const computedBg = getComputedStyle(cardContainer).backgroundColor;
+            const origBg = cardContainer.style.background;
+            const origBgColor = cardContainer.style.backgroundColor;
+            cardContainer.style.background = 'transparent';
+            cardContainer.style.backgroundColor = 'transparent';
+
+            let overlayDataUrl;
+            try {
+                overlayDataUrl = await htmlToImage.toPng(cardContainer, {
+                    cacheBust: true,
+                    pixelRatio: 2,
+                    backgroundColor: 'rgba(0,0,0,0)',
+                    style: { transform: 'none', margin: '0' },
+                    filter: (node) => {
+                        return node.id !== 'cardBgVideo' && node.id !== 'userImgContainer' && node.id !== 'confettiCanvas';
+                    }
+                });
+            } catch(imgErr) {
+                const errName = (imgErr && imgErr.name) ? imgErr.name : '';
+                const errMsg = (imgErr && imgErr.message) ? imgErr.message : '';
+                throw new Error('Card overlay capture failed' + (errName ? ' (' + errName + ')' : '') + (errMsg ? ': ' + errMsg : '. This may be caused by a cross-origin image. Try using an uploaded image instead of a URL.'));
+            }
+
+            cardContainer.style.background = origBg;
+            cardContainer.style.backgroundColor = origBgColor;
+
+            if (wasVideoVisible) {
+                videoEl.style.display = 'block';
+            }
+
+            const overlayImg = new Image();
+            await new Promise((resolve, reject) => {
+                overlayImg.onload = resolve;
+                overlayImg.onerror = () => reject(new Error("Failed to load overlay image"));
+                overlayImg.src = overlayDataUrl;
+            });
+
+            let bgImg = null;
+            if (!isVideoCard) {
+                const userImg = document.getElementById('userImg');
+                if (userImg && userImg.src) {
+                    bgImg = userImg;
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = cardContainer.offsetWidth * 2;
+            canvas.height = cardContainer.offsetHeight * 2;
+            const ctx = canvas.getContext('2d');
+
+            const stream = canvas.captureStream(30);
+
+            let audioSourceEl = null;
+            if (usesVideoAudio) {
+                audioSourceEl = videoEl;
+            } else if (hasExternalMusic || isCustomMusic) {
+                audioSourceEl = audioEl;
+                if (isVideoCard && videoEl) videoEl.muted = true;
+            } else if (isVideoCard) {
+                audioSourceEl = videoEl;
+            } else {
+                audioSourceEl = audioEl;
+            }
+
+            if (!audioSourceEl) {
+                throw new Error('No audio source available for export');
+            }
+
+            let audioCtx = audioSourceEl._audioCtx && audioSourceEl._audioCtx.state !== 'closed'
+                ? audioSourceEl._audioCtx
+                : new (window.AudioContext || window.webkitAudioContext)();
+            if (!audioSourceEl._audioCtx || audioSourceEl._audioCtx.state === 'closed') {
+                audioSourceEl._audioCtx = audioCtx;
+            }
+            let dest = audioCtx.createMediaStreamDestination();
+
+            const audioStart = isCustomMusic && window.cardData.sms !== undefined ? parseFloat(window.cardData.sms) : 0;
+            const audioClipLen = isCustomMusic && window.cardData.smd !== undefined ? parseFloat(window.cardData.smd) : null;
+
+            const origCurrentTime = audioSourceEl.currentTime;
+            const origPaused = audioSourceEl.paused;
+            const origLoop = audioSourceEl.loop;
+            const origOnTimeUpdate = audioSourceEl.ontimeupdate;
+
+            audioSourceEl.loop = false;
+            audioSourceEl.currentTime = audioStart;
+
+            if (audioClipLen) {
+                audioSourceEl.ontimeupdate = () => {
+                    if (audioSourceEl.currentTime < audioStart - 0.05) {
+                        audioSourceEl.currentTime = audioStart;
+                    }
+                    if (audioSourceEl.currentTime >= audioStart + audioClipLen - 0.05) {
+                        audioSourceEl.currentTime = audioStart;
+                    }
+                };
+            }
+
+            if (isVideoCard && videoEl) {
+                videoEl.currentTime = 0;
+                try { await videoEl.play(); } catch (e) { console.warn('Video play failed', e); }
+            }
+
+            try {
+               await audioSourceEl.play();
+            } catch(e) {
+                console.warn("Auto-play blocked or failed", e);
+            }
+
+            let audioTrack = null;
+            if (audioSourceEl.captureStream) {
+                try {
+                    const mediaStream = audioSourceEl.captureStream();
+                    if (mediaStream.getAudioTracks().length > 0) {
+                        audioTrack = mediaStream.getAudioTracks()[0];
+                    }
+                } catch(e) {
+                    console.warn("captureStream failed:", e);
+                }
+            }
+            if (!audioTrack) {
+                try {
+                    if (!audioSourceEl._audioSourceNode) {
+                        audioSourceEl._audioSourceNode = audioCtx.createMediaElementSource(audioSourceEl);
+                        audioSourceEl._audioSourceNode.connect(audioCtx.destination);
+                    }
+                    audioSourceEl._audioSourceNode.connect(dest);
+                    audioTrack = dest.stream.getAudioTracks()[0];
+                } catch(e) {
+                    const eName = (e && (e.name || e.code)) ? (e.name || e.code) : '';
+                    const eMsg = (e && e.message) ? e.message : '';
+                    console.warn("Audio capture failed:", eName || eMsg || 'unknown error', e);
+                }
+            }
+            
+            if (audioTrack) {
+                stream.addTrack(audioTrack);
+            }
+
+            let mimeType = 'video/webm';
+            let fileExt = 'webm';
+            if (typeof MediaRecorder.isTypeSupported === 'function' && !MediaRecorder.isTypeSupported(mimeType)) {
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    mimeType = 'video/mp4';
+                    fileExt = 'mp4';
+                } else {
+                    mimeType = ''; 
+                }
+            }
+            const options = mimeType ? { mimeType } : {};
+            const recorder = new MediaRecorder(stream, options);
+
+            const chunks = [];
+            recorder.ondataavailable = e => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            let durationSecs = 15;
+            if (isVideoCard) {
+                durationSecs = window.cardVideoDuration || (videoEl && videoEl.duration > 0 ? videoEl.duration : 15);
+            } else if (isCustomMusic) {
+                durationSecs = window.cardData.smd || 15;
+            } else if (hasExternalMusic && musicTracks[cardMusic]) {
+                durationSecs = 15;
+            }
+            
+            let recording = true;
+            recorder.onstop = () => {
+                recording = false;
+                const blob = new Blob(chunks, { type: mimeType || 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `congratulations_card.${fileExt}`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+
+                if (controls) controls.style.display = '';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalIcon;
+                }
+
+                audioSourceEl.pause();
+                audioSourceEl.currentTime = origCurrentTime;
+                audioSourceEl.loop = origLoop;
+                audioSourceEl.ontimeupdate = origOnTimeUpdate;
+                if (isVideoCard && videoEl) {
+                    videoEl.muted = !usesVideoAudio;
+                }
+                if (!origPaused) audioSourceEl.play().catch(() => {});
+            };
+
+            recorder.onerror = (e) => {
+                // MediaRecorderErrorEvent - extract the actual error
+                const recErr = e && e.error ? e.error : e;
+                const recErrName = (recErr && recErr.name) ? recErr.name : '';
+                const recErrMsg = (recErr && recErr.message) ? recErr.message : '';
+                console.error("MediaRecorder Error:", recErrName || recErrMsg || recErr);
+                recording = false;
+                // Restore UI on recorder error
+                if (controls) controls.style.display = '';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalIcon;
+                }
+                alert('Recording failed: ' + (recErrName || recErrMsg || 'Media format or source not supported. Try downloading a text/image card instead.'));
+            };
+
+            try {
+                recorder.start();
+            } catch (err) {
+                throw new Error("Failed to start recording. Media format might not be supported.");
+            }
+
+            const confettiCanvas = document.getElementById('confettiCanvas');
+            
+            function renderFrame() {
+                if (!recording) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = computedBg || '#111';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                try {
+                    if (isVideoCard && videoEl.readyState >= 2 && videoEl.style.display !== 'none') {
+                        const vRatio = videoEl.videoWidth / videoEl.videoHeight;
+                        const cRatio = canvas.width / canvas.height;
+                        let drawW = canvas.width;
+                        let drawH = canvas.height;
+                        let dx = 0; let dy = 0;
+                        if (vRatio > cRatio) {
+                            drawW = canvas.height * vRatio;
+                            dx = (canvas.width - drawW) / 2;
+                        } else {
+                            drawH = canvas.width / vRatio;
+                            dy = (canvas.height - drawH) / 2;
+                        }
+                        ctx.drawImage(videoEl, dx, dy, drawW, drawH);
+                    } else if (!isVideoCard && bgImg) {
+                        const imgRatio = bgImg.naturalWidth / bgImg.naturalHeight;
+                        const cRatio = canvas.width / canvas.height;
+                        let drawW = canvas.width;
+                        let drawH = canvas.height;
+                        let dx = 0; let dy = 0;
+                        if (imgRatio > cRatio) {
+                            drawH = canvas.width / imgRatio;
+                            dy = (canvas.height - drawH) / 2;
+                        } else {
+                            drawW = canvas.height * imgRatio;
+                            dx = (canvas.width - drawW) / 2;
+                        }
+                        ctx.drawImage(bgImg, dx, dy, drawW, drawH);
+                    }
+
+                    if (confettiCanvas) {
+                        ctx.drawImage(confettiCanvas, 0, 0, canvas.width, canvas.height);
+                    }
+
+                    ctx.drawImage(overlayImg, 0, 0, canvas.width, canvas.height);
+                } catch (frameErr) {
+                    console.warn("Render frame error:", frameErr);
+                }
+
+                requestAnimationFrame(renderFrame);
+            }
+            
+            renderFrame();
+
+            setTimeout(() => {
+                if (recorder.state === 'recording') {
+                    recorder.stop();
+                }
+            }, durationSecs * 1000);
+        }
+    } catch (err) {
+        // DOMException and some browser errors serialize as {} with JSON.stringify
+        // MediaRecorderErrorEvent arrives as an Event object - extract .error property
+        const actualErr = (err && typeof err === 'object' && err.error) ? err.error : err;
+        const errName = (actualErr && actualErr.name) ? actualErr.name : '';
+        const errMsg = actualErr instanceof Error
+            ? actualErr.message
+            : (actualErr && actualErr.message ? actualErr.message : '');
+        const displayMsg = errMsg || errName
+            ? ((errName ? errName + ': ' : '') + errMsg)
+            : 'Cross-origin media error. If you used an image URL, try uploading the image directly instead.';
+        console.error("Download Error:", errName || errMsg || actualErr);
+        alert('Failed to generate download: ' + displayMsg);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalIcon;
+        }
+        const controls = document.querySelector('.controls-container');
+        if (controls) controls.style.display = '';
+    }
+};
+
+// --- Video duration slider ---
+
+function updateVideoEditVisibility() {
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    const videoTabs = ['4', '5', '6'];
+    const group = document.getElementById('videoEditGroup');
+    const hasVideo = Number.isFinite(window.selectedVideoDuration) && window.selectedVideoDuration > 0;
+    if (group) {
+        group.style.display = (videoTabs.includes(activeTab) && hasVideo) ? 'block' : 'none';
+    }
+}
+window.updateVideoEditVisibility = updateVideoEditVisibility;
+
+window.initVideoDurationSlider = function (duration) {
+    const slider = document.getElementById('videoDurationSlider');
+    const display = document.getElementById('videoDurationDisplay');
+    const startInput = document.getElementById('videoStartInput');
+    const endInput = document.getElementById('videoEndInput');
+    if (!slider || !Number.isFinite(duration) || duration <= 0) return;
+
+    const dur = Math.max(1, Math.floor(duration));
+    slider.min = 1;
+    slider.max = dur;
+    slider.value = dur;
+    if (startInput) startInput.value = 0;
+    if (endInput) endInput.value = dur;
+    if (display) display.textContent = `${dur}s / ${dur}s`;
+};
+
+window.onVideoDurationSliderChange = function (val) {
+    const display = document.getElementById('videoDurationDisplay');
+    const endInput = document.getElementById('videoEndInput');
+    const slider = document.getElementById('videoDurationSlider');
+    const max = slider ? slider.max : val;
+    const useSecs = parseInt(val, 10) || 1;
+    if (endInput) endInput.value = useSecs;
+    if (display) display.textContent = `${useSecs}s / ${max}s`;
+    if (typeof window.updateLivePreview === 'function') {
+        window.updateLivePreview();
+    }
+};
+
+// --- NEW SPLIT LAYOUT LOGIC ---
+
+window.selectCardType = function(tabIndex) {
+    // 1. text, 2. image, 3. image+music, 4. video, 5. video+music, 6. video no text
+    
+    // Update active tab styling
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.querySelector(`.tab-btn[data-tab="${tabIndex}"]`);
+    if(activeBtn) activeBtn.classList.add('active');
+
+    // Get group elements
+    const nameGroup = document.getElementById('nameGroup');
+    const typeGroup = document.getElementById('typeGroup');
+    const imageGroup = document.getElementById('imageGroup');
+    const videoGroup = document.getElementById('videoGroup');
+    const videoEditGroup = document.getElementById('videoEditGroup');
+    const descGroup = document.getElementById('descGroup');
+    const defaultMusicGroup = document.getElementById('defaultMusicGroup');
+    const bgMusicGroup = document.getElementById('bgMusicGroup');
+    const themeGroup = document.getElementById('themeGroup');
+
+    // Hide all first
+    [nameGroup, typeGroup, imageGroup, videoGroup, videoEditGroup, descGroup, defaultMusicGroup, bgMusicGroup, themeGroup].forEach(el => {
+        if(el) el.style.display = 'none';
+    });
+
+    // Show based on tabIndex
+    if (tabIndex === 1) {
+        if(nameGroup) nameGroup.style.display = 'block';
+        if(typeGroup) typeGroup.style.display = 'block';
+        if(descGroup) descGroup.style.display = 'block';
+        if(themeGroup) themeGroup.style.display = 'block';
+    } else if (tabIndex === 2) {
+        if(nameGroup) nameGroup.style.display = 'block';
+        if(typeGroup) typeGroup.style.display = 'block';
+        if(imageGroup) imageGroup.style.display = 'block';
+        if(descGroup) descGroup.style.display = 'block';
+        if(themeGroup) themeGroup.style.display = 'block';
+    } else if (tabIndex === 3) {
+        if(nameGroup) nameGroup.style.display = 'block';
+        if(typeGroup) typeGroup.style.display = 'block';
+        if(imageGroup) imageGroup.style.display = 'block';
+        if(descGroup) descGroup.style.display = 'block';
+        if(defaultMusicGroup) defaultMusicGroup.style.display = 'block';
+        if(bgMusicGroup) bgMusicGroup.style.display = 'block';
+        if(themeGroup) themeGroup.style.display = 'block';
+    } else if (tabIndex === 4) {
+        if(nameGroup) nameGroup.style.display = 'block';
+        if(typeGroup) typeGroup.style.display = 'block';
+        if(videoGroup) videoGroup.style.display = 'block';
+        if(descGroup) descGroup.style.display = 'block';
+        if(themeGroup) themeGroup.style.display = 'block';
+    } else if (tabIndex === 5) {
+        if(nameGroup) nameGroup.style.display = 'block';
+        if(typeGroup) typeGroup.style.display = 'block';
+        if(videoGroup) videoGroup.style.display = 'block';
+        if(descGroup) descGroup.style.display = 'block';
+        if(bgMusicGroup) bgMusicGroup.style.display = 'block';
+        if(defaultMusicGroup) defaultMusicGroup.style.display = 'block';
+        if(themeGroup) themeGroup.style.display = 'block';
+    } else if (tabIndex === 6) {
+        if(videoGroup) videoGroup.style.display = 'block';
+        if(defaultMusicGroup) defaultMusicGroup.style.display = 'block';
+        if(bgMusicGroup) bgMusicGroup.style.display = 'block';
+        if(themeGroup) themeGroup.style.display = 'block';
+    }
+
+    updateVideoEditVisibility();
+    // Refresh preview based on visible fields
+    window.updateLivePreview();
+};
+
+window.onDefaultMusicChange = function() {
+    const defaultMusic = document.getElementById('defaultMusicInput')?.value;
+    const bgMusicBtn = document.getElementById('musicInputBtn');
+    
+    if (defaultMusic && defaultMusic !== 'none') {
+        if(bgMusicBtn) {
+            bgMusicBtn.style.opacity = '0.5';
+            bgMusicBtn.style.pointerEvents = 'none';
+        }
+    } else {
+        if(bgMusicBtn) {
+            bgMusicBtn.style.opacity = '1';
+            bgMusicBtn.style.pointerEvents = 'auto';
+        }
+    }
+    if (typeof window.syncPreviewMusic === 'function') {
+        window.syncPreviewMusic();
+    }
+};
+
+window.onImageFileSelected = function(input) {
+    const file = input?.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const previewImg = document.getElementById('previewImg');
+            if(previewImg) previewImg.src = e.target.result;
+            window.updateLivePreview();
+        }
+        reader.readAsDataURL(file);
+    }
+};
+
+// Hook into existing video selected function
+const originalOnVideoFileSelected = window.onVideoFileSelected;
+window.onVideoFileSelected = async function(input) {
+    if (originalOnVideoFileSelected) {
+        await originalOnVideoFileSelected(input);
+    }
+    const file = input?.files?.[0];
+    if (file) {
+        const url = URL.createObjectURL(file);
+        const previewVideo = document.getElementById('previewBgVideo');
+        if(previewVideo) {
+            previewVideo.src = url;
+            previewVideo.style.display = 'block';
+            previewVideo.play().catch(e=>console.log(e));
+        }
+        window.updateLivePreview();
+    }
+};
+
+function getPreviewMusicConfig() {
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    const musicTabs = ['3', '5', '6'];
+    if (!musicTabs.includes(activeTab)) return null;
+
+    const defaultMusic = document.getElementById('defaultMusicInput')?.value;
+    const customMusic = document.getElementById('musicInput')?.value;
+    const customUrl = document.getElementById('musicCustomUrl')?.value;
+    const startTime = parseFloat(document.getElementById('musicStartTime')?.value || '0');
+    const duration = parseFloat(document.getElementById('musicDuration')?.value || '15');
+
+    if (defaultMusic && defaultMusic !== 'none') {
+        const label = document.getElementById('defaultMusicInput')?.selectedOptions?.[0]?.textContent || defaultMusic;
+        return { type: 'stock', track: defaultMusic, start: 0, clipLength: null, duration: null, label };
+    }
+    if (customMusic === 'custom' && customUrl) {
+        const label = document.getElementById('musicInputDisplay')?.textContent || 'Custom Track';
+        return { type: 'custom', url: customUrl, start: startTime, clipLength: duration, duration, label };
+    }
+    if (activeTab === '3') {
+        const msgType = document.getElementById('typeInput')?.value || 'Congratulations';
+        const track = getDefaultMusicForMessageType(msgType);
+        return { type: 'stock', track, start: 0, clipLength: null, duration: null, label: track };
+    }
+    return null;
+}
+
+function updateCurrentTrackLabel(label) {
+    const trackLabel = document.getElementById('currentTrackLabel');
+    if (trackLabel) {
+        trackLabel.textContent = label || '';
+        trackLabel.style.display = label ? 'block' : 'none';
+    }
+}
+
+window.syncPreviewMusic = function() {
+    const config = getPreviewMusicConfig();
+    const audio = document.getElementById('bgMusic');
+    const musicControlGroup = document.getElementById('musicControlGroup');
+    const previewVideo = document.getElementById('previewBgVideo');
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+
+    if (!audio) return;
+
+    if (!config) {
+        window.isPreviewMode = false;
+        window.previewVideoDuration = null;
+        window.cardVideoDuration = undefined;
+        audio.pause();
+        audio.removeAttribute('src');
+        if (musicControlGroup) musicControlGroup.style.display = 'none';
+        updateCurrentTrackLabel('');
+        return;
+    }
+
+    window.isPreviewMode = true;
+    window.previewVideoDuration = null;
+    window.cardVideoDuration = undefined;
+
+    if (['5', '6'].includes(activeTab) && previewVideo && Number.isFinite(previewVideo.duration) && previewVideo.duration > 0) {
+        window.previewVideoDuration = previewVideo.duration;
+        window.cardVideoDuration = previewVideo.duration;
+        if (previewVideo) previewVideo.muted = true;
+    }
+
+    const src = config.type === 'custom' ? config.url : musicTracks[config.track];
+    if (!src) return;
+
+    window.customMusicStartTime = config.start;
+    window.customMusicClipLength = config.clipLength;
+    window.customMusicDuration = window.previewVideoDuration || config.duration;
+
+    if (musicControlGroup) musicControlGroup.style.display = 'flex';
+    updateCurrentTrackLabel(config.label);
+
+    const currentSrc = audio.getAttribute('src') || '';
+    const needsReload = !currentSrc || !currentSrc.includes(src.split('/').pop() || src);
+
+    const startPreviewPlayback = () => {
+        applyMusicTiming(audio, null);
+        const slider = document.getElementById('volumeSlider');
+        const vol = slider ? parseInt(slider.value, 10) / 100 : 0.5;
+        audio.volume = vol;
+        if (vol > 0) {
+            audio.play().catch(() => {});
+        }
+        syncMainSpeakerIcon();
+    };
+
+    if (needsReload) {
+        audio.src = src;
+        audio.load();
+        audio.addEventListener('canplay', startPreviewPlayback, { once: true });
+    } else {
+        startPreviewPlayback();
+    }
+};
+
+window.updateLivePreview = function() {
+    // Sync text fields
+    const nameVal = document.getElementById('nameInput')?.value || 'Recipient Name';
+    const typeVal = document.getElementById('typeInput')?.value || 'Congratulations';
+    const descVal = document.getElementById('descInput')?.value || 'Write a heartfelt message...';
+    
+    const pName = document.getElementById('previewUserName');
+    const pHeading = document.getElementById('previewHeading');
+    const pDesc = document.getElementById('previewDesc');
+    
+    if(pName) pName.textContent = nameVal;
+    if(pHeading) pHeading.textContent = typeVal;
+    if(pDesc) pDesc.textContent = descVal;
+
+    // Handle Tab 6 (No text)
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset.tab;
+    if (activeTab === '6') {
+        if(pName) pName.style.display = 'none';
+        if(pHeading) pHeading.style.display = 'none';
+        if(pDesc) pDesc.style.display = 'none';
+    } else {
+        if(pName) pName.style.display = '';
+        if(pHeading) pHeading.style.display = '';
+        if(pDesc) pDesc.style.display = '';
+    }
+
+    // Sync Images
+    const imgInputVal = document.getElementById('imgInput')?.value;
+    const pImgContainer = document.getElementById('previewImgContainer');
+    const pImg = document.getElementById('previewImg');
+    const fileInput = document.getElementById('fileInput');
+    
+    if (activeTab === '2' || activeTab === '3') {
+        if (imgInputVal && !fileInput?.files?.[0]) {
+             if(pImg) pImg.src = imgInputVal;
+        }
+        if(pImgContainer && pImg && pImg.src && pImg.src !== window.location.href) {
+            pImgContainer.style.display = 'block';
+        } else if (pImgContainer) {
+            pImgContainer.style.display = 'none';
+        }
+    } else {
+        if(pImgContainer) pImgContainer.style.display = 'none';
+    }
+    
+    // Sync Videos
+    const pVideo = document.getElementById('previewBgVideo');
+    if (activeTab === '4' || activeTab === '5' || activeTab === '6') {
+        if(pVideo && pVideo.src && pVideo.src !== window.location.href) {
+            pVideo.style.display = 'block';
+            
+            // Handle Video Edit trim loop
+            const startInput = document.getElementById('videoStartInput')?.value;
+            const endInput = document.getElementById('videoEndInput')?.value;
+
+            const start = startInput ? parseFloat(startInput) : 0;
+            const end = endInput ? parseFloat(endInput) : (pVideo.duration || window.selectedVideoDuration);
+
+            if (Number.isFinite(end) && end > 0) {
+                pVideo.ontimeupdate = function() {
+                    if (pVideo.currentTime >= end) {
+                        pVideo.currentTime = start;
+                    }
+                };
+            }
+        } else if (pVideo) {
+            pVideo.style.display = 'none';
+        }
+        
+        // Add Video Story Mode class to container
+        const pContainer = document.getElementById('livePreviewCard');
+        if(pContainer) pContainer.classList.add('video-story-mode');
+    } else {
+        if(pVideo) pVideo.style.display = 'none';
+        const pContainer = document.getElementById('livePreviewCard');
+        if(pContainer) pContainer.classList.remove('video-story-mode');
+    }
+
+    applyPreviewCardTheme();
+    window.syncPreviewMusic();
+};
+
+// Call selectCardType(1) on load to initialize form
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if(document.querySelector('.tab-btn')) {
+            window.selectCardType(1);
+        }
+    }, 500);
+});
+
+// Tab scroll functionality
+window.scrollTabs = function(direction) {
+    const container = document.getElementById('cardTabsContainer');
+    if (container) {
+        const scrollAmount = 150; // pixels to scroll
+        container.scrollBy({ left: direction * scrollAmount, behavior: 'smooth' });
+    }
+};
+
+// Mobile sidebar toggle
+window.toggleMobileSidebar = function(forceState) {
+    const sidebar = document.querySelector('.form-sidebar');
+    const overlay = document.querySelector('.sidebar-overlay');
+    if (!sidebar || !overlay) return;
+    
+    const isOpen = sidebar.classList.contains('open');
+    const newState = typeof forceState === 'boolean' ? forceState : !isOpen;
+    
+    if (newState) {
+        sidebar.classList.add('open');
+        overlay.classList.add('active');
+    } else {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+    }
 };

@@ -1,0 +1,504 @@
+{%- comment -%}
+  KW Product Banner with Advanced Split-Panel Popup Modal & Dynamic Content BG
+{%- endcomment -%}
+
+{%- style -%}
+  /* --- FULL WINDOW CORNER TO CORNER BREAKOUT --- */
+  .kw-product-banner-{{ section.id }} {
+    width: 100%;
+    position: relative;
+    left: 50%;
+    right: 50%;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top Ticker Container */
+  .kw-product-banner-ticker-{{ section.id }} {
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 14px 0;
+    margin: 0;
+    position: relative;
+    {%- if product.metafields.custom.ticker_gradient.value != blank -%}
+      background-image: url('{{ product.metafields.custom.ticker_gradient.value | image_url: width: 2500 }}');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    {%- else -%}
+      background: #e1e7d5;
+    {%- endif -%};
+    color: {{ section.settings.kw_ticker_color }};
+  }
+
+  .kw-product-banner-ticker-track-{{ section.id }} {
+    display: flex;
+    width: max-content;
+    flex-wrap: nowrap;
+    will-change: transform;
+    animation: kw_marquee_anim 30s linear infinite;
+  }
+
+  .kw-product-banner-ticker-group-{{ section.id }} {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 40px;
+    padding-right: 40px;
+  }
+
+  .kw-product-banner-ticker-item-{{ section.id }} {
+    font-size: 13px;
+    letter-spacing: 0.22em; 
+    text-transform: uppercase;
+    font-weight: 500;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .kw-product-banner-ticker-item-{{ section.id }}::after {
+    content: "•";
+    margin-left: 40px;
+    opacity: 0;
+  }
+
+  @keyframes kw_marquee_anim {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-25%, 0, 0); }
+  }
+
+  /* Interactive Banner Trigger Area */
+  .kw-product-banner-main-{{ section.id }} {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: block;
+    line-height: 0;
+    {%- if product.metafields.custom.popup_image.value != blank or product.metafields.custom.popup_desktop_image.value != blank -%}
+      cursor: pointer;
+    {%- endif -%}
+  }
+
+  .kw-product-banner-bg-{{ section.id }} {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .kw-product-banner-bg-desktop-{{ section.id }} { display: block; }
+  .kw-product-banner-bg-mobile-{{ section.id }} { display: none; }
+
+
+  /* ----------------------------------------------
+      NEW DYNAMIC SPLIT-MODAL ARCHITECTURE
+  ------------------------------------------------- */
+  .kw-banner-modal-{{ section.id }} {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.35s ease, visibility 0.35s ease;
+    padding: 30px;
+  }
+
+  .kw-banner-modal-{{ section.id }}.is-open {
+    opacity: 1;
+    top:20px;
+    visibility: visible;
+  }
+
+  .kw-banner-modal-overlay-{{ section.id }} {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Symmetrical 50/50 Container Box */
+  .kw-banner-modal-container-{{ section.id }} {
+    position: relative;
+    background: #ffffff;
+    width: 100%;
+    max-width: 1300px;
+    height: 85vh;
+    max-height: 700px;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    z-index: 10;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.18);
+    transform: scale(0.96);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .kw-banner-modal-{{ section.id }}.is-open .kw-banner-modal-container-{{ section.id }} {
+    transform: scale(1);
+  }
+
+  /* Left Panel: Visual Feature Block */
+  .kw-modal-visual-side-{{ section.id }} {
+    width: 50%;
+    height: 100%;
+    position: relative;
+    background-color: #f4f4f4;
+    overflow: hidden;
+  }
+
+  .kw-modal-visual-side-{{ section.id }} img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Right Panel: Content Scrolling Context with Dynamic Image BG support */
+  .kw-modal-content-side-{{ section.id }} {
+    width: 50%;
+    height: 100%;
+    {%- if product.metafields.custom.popup_content_bg.value != blank -%}
+      background-image: url('{{ product.metafields.custom.popup_content_bg.value | image_url: width: 1200 }}');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+    {%- else -%}
+      background: #f7f7f5;
+    {%- endif -%};
+    display: flex;
+    flex-direction: column;
+    padding: 60px 50px;
+    overflow-y: auto;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  /* Typography Styles matching Figma specifications */
+  .kw-modal-title-{{ section.id }} {
+    font-weight: 400;
+    font-size: 75px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    margin: 0 0 24px 0;
+    color: #9B8C00;
+  }
+
+  .kw-modal-description-{{ section.id }} p{
+    font-size: 17px;
+    line-height: 22px;
+    color: #4D6A38;
+    margin: 0 0 40px 0;
+    max-width:80%;
+  }
+
+  /* Notes Grid Setup */
+  .kw-modal-notes-grid-{{ section.id }} {
+    /* display: flex;
+    flex-direction: column;
+    gap: 28px; */
+    margin-top: auto;
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .kw-note-block-{{ section.id }} {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .kw-note-label-{{ section.id }} {
+    font-size: 15px;
+    font-weight: 700;
+    line-height:18px;
+    text-transform: uppercase;
+    color: #363636;
+    font-family:Syne;
+  }
+
+  .kw-note-values-{{ section.id }} {
+    font-size: 15px;
+    color: #363636;
+    line-height:18px;
+  }
+
+  /* Dynamic Close System Button */
+  .kw-banner-modal-close-{{ section.id }} {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 12;
+    transition: transform 0.25s ease;
+  }
+
+  .kw-banner-modal-close-{{ section.id }}:hover {
+    transform: rotate(90deg);
+  }
+
+  .kw-banner-modal-close-{{ section.id }} svg {
+    width: 31px;
+    height: 31px;
+    fill: #9B8C00;
+  }
+
+  .kw-body-lock {
+    overflow: hidden !important;
+  }
+
+  /* ----------------------------------------------
+      MOBILE VIEWPORT STYLING (image_c859a1.png)
+  ------------------------------------------------- */
+  @media (max-width: 768px) {
+    .kw-product-banner-bg-desktop-{{ section.id }} { display: none; }
+    .kw-product-banner-bg-mobile-{{ section.id }} { display: block; }
+    
+    .kw-product-banner-ticker-group-{{ section.id }} {
+      gap: 20px;
+      padding-right: 20px;
+    }
+    
+    .kw-product-banner-ticker-item-{{ section.id }}::after {
+      margin-left: 20px;
+    }
+
+    /* Modal Transformation */
+    .kw-banner-modal-{{ section.id }} {
+      padding: 0;
+    }
+
+    .kw-banner-modal-container-{{ section.id }} {
+      max-width: 95%;
+      height: 90vh;
+      max-height: 90vh;
+      flex-direction: column; /* Stacks layout elements vertically */
+    }
+
+    /* Content on Top for Mobile */
+    .kw-modal-content-side-{{ section.id }} {
+      width: 100%;
+      height: 60%;
+      order: 1; /* Pushes text container to the top block */
+      padding: 30px 24px 30px 24px;
+    }
+
+    /* Image on Bottom for Mobile */
+    .kw-modal-visual-side-{{ section.id }} {
+      width: 100%;
+      height: 40%;
+      order: 2; /* Drops visuals to bottom zone */
+    }
+
+    .kw-modal-title-{{ section.id }} {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .kw-modal-description-{{ section.id }} {
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .kw-modal-notes-grid-{{ section.id }} {
+      gap: 18px;
+      display: flex;
+    flex-direction: column;
+    }
+
+    .kw-banner-modal-close-{{ section.id }} {
+      top: 28px;
+      right: 16px;
+    }
+    .kw-modal-description-{{ section.id }} p{
+    max-width:100%;
+    margin-bottom:0px;
+  }
+  }
+{%- endstyle -%}
+
+{%- liquid
+  assign desktop_img = product.metafields.custom.desktop_banner.value
+  assign mobile_img = product.metafields.custom.mobile_banner.value | default: desktop_img
+  
+  comment
+    Populating variables based on flexible field structures
+  endcomment
+  assign popup_visual = product.metafields.custom.popup_image.value
+  assign modal_title = product.metafields.custom.popup_title.value | default: product.title
+  assign modal_desc = product.metafields.custom.popup_description | metafield_tag
+  
+  assign top_notes = product.metafields.custom.popup_top_notes.value
+  assign heart_notes = product.metafields.custom.popup_heart_notes.value
+  assign base_notes = product.metafields.custom.popup_base_notes.value
+-%}
+
+<div class="kw-product-banner-{{ section.id }}">
+  
+  {%- if product.metafields.custom.ticker_text.value != blank -%}
+    <div class="kw-product-banner-ticker-{{ section.id }}">
+      <div class="kw-product-banner-ticker-track-{{ section.id }}">
+        
+        {%- for i in (1..4) -%}
+          <div class="kw-product-banner-ticker-group-{{ section.id }}" {% unless forloop.first %}aria-hidden="true"{% endunless %}>
+            {%- for item in product.metafields.custom.ticker_text.value -%}
+              <span class="kw-product-banner-ticker-item-{{ section.id }}">{{ item | strip }}</span>
+            {%- endfor -%}
+          </div>
+        {%- endfor -%}
+
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div class="kw-product-banner-main-{{ section.id }}" 
+       {% if popup_visual != blank %}onclick="kwOpenBannerModal('{{ section.id }}')"{% endif %}
+       role="{% if popup_visual != blank %}button{% else %}region{% endif %}"
+       {% if popup_visual != blank %}aria-haspopup="dialog" aria-label="Open details modal"{% endif %}>
+    
+    {%- if desktop_img != blank -%}
+      {%- assign kw_desktop_class = 'kw-product-banner-bg-desktop-' | append: section.id | append: ' kw-product-banner-bg-' | append: section.id -%}
+      {{ desktop_img | image_url: width: 2800 | image_tag: class: kw_desktop_class, loading: 'eager', fetchpriority: 'high', alt: product.title }}
+    {%- else -%}
+      {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg' }}
+    {%- endif -%}
+
+    {%- if mobile_img != blank -%}
+      {%- assign kw_mobile_class = 'kw-product-banner-bg-mobile-' | append: section.id | append: ' kw-product-banner-bg-' | append: section.id -%}
+      {{ mobile_img | image_url: width: 1000 | image_tag: class: kw_mobile_class, loading: 'eager', alt: product.title }}
+    {%- endif -%}
+
+  </div>
+</div>
+
+<!-- COMPACT SPLIT DIALOG COMPONENT -->
+{%- if popup_visual != blank -%}
+  <div id="KwBannerModal-{{ section.id }}" class="kw-banner-modal-{{ section.id }}" aria-hidden="true" role="dialog">
+    <div class="kw-banner-modal-overlay-{{ section.id }}" onclick="kwCloseBannerModal('{{ section.id }}')"></div>
+    
+    <div class="kw-banner-modal-container-{{ section.id }}">
+      <button class="kw-banner-modal-close-{{ section.id }}" onclick="kwCloseBannerModal('{{ section.id }}')" aria-label="Close modal">
+        <svg viewBox="0 0 24 24">
+          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+      
+      <!-- Left Panel Side (Bottom on Mobile) -->
+      <div class="kw-modal-visual-side-{{ section.id }}">
+        {{ popup_visual | image_url: width: 1200 | image_tag: loading: 'lazy', alt: modal_title }}
+      </div>
+
+      <!-- Right Panel Side (Top on Mobile) -->
+      <div class="kw-modal-content-side-{{ section.id }}">
+        <h2 class="kw-modal-title-{{ section.id }}">{{ modal_title }}</h2>
+        
+        {%- if modal_desc != blank -%}
+          <div class="kw-modal-description-{{ section.id }}">{{ modal_desc }}</div>
+        {%- endif -%}
+
+        <!-- Dynamic Fragrance/Product Meta Information Sub-grid -->
+        <div class="kw-modal-notes-grid-{{ section.id }}">
+          {%- if top_notes != blank -%}
+            <div class="kw-note-block-{{ section.id }}">
+              <span class="kw-note-label-{{ section.id }}">Top Note:</span>
+              <span class="kw-note-values-{{ section.id }}">{{ top_notes }}</span>
+            </div>
+          {%- endif -%}
+
+          {%- if heart_notes != blank -%}
+            <div class="kw-note-block-{{ section.id }}">
+              <span class="kw-note-label-{{ section.id }}">Heart Note:</span>
+              <span class="kw-note-values-{{ section.id }}">{{ heart_notes }}</span>
+            </div>
+          {%- endif -%}
+
+          {%- if base_notes != blank -%}
+            <div class="kw-note-block-{{ section.id }}">
+              <span class="kw-note-label-{{ section.id }}">Base Note:</span>
+              <span class="kw-note-values-{{ section.id }}">{{ base_notes }}</span>
+            </div>
+          {%- endif -%}
+        </div>
+      </div>
+
+    </div>
+  </div>
+{%- endif -%}
+
+<script>
+  function kwOpenBannerModal(id) {
+    const modal = document.getElementById('KwBannerModal-' + id);
+    if (modal) {
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('kw-body-lock');
+      document.addEventListener('keydown', kwHandleEscKey);
+    }
+  }
+
+  function kwCloseBannerModal(id) {
+    const modal = document.getElementById('KwBannerModal-' + id);
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('kw-body-lock');
+      document.removeEventListener('keydown', kwHandleEscKey);
+    }
+  }
+
+  function kwHandleEscKey(e) {
+    if (e.key === 'Escape') {
+      const activeModal = document.querySelector('.kw-banner-modal-{{ section.id }}.is-open');
+      if (activeModal) {
+        const sectionId = activeModal.id.replace('KwBannerModal-', '');
+        kwCloseBannerModal(sectionId);
+      }
+    }
+  }
+</script>
+
+{% schema %}
+{
+  "name": "KW Product Banner",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Typography Styling"
+    },
+    {
+      "type": "color",
+      "id": "kw_ticker_color",
+      "label": "Marquee Text Color",
+      "default": "#545a27"
+    }
+  ],
+  "presets": [
+    {
+      "name": "KW Product Banner"
+    }
+  ]
+}
+{% endschema %}
